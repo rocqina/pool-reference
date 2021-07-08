@@ -5,8 +5,7 @@ import time
 import traceback
 from asyncio import Task
 from math import floor
-from typing import Dict, Optional, Set, List, Tuple,
-import queue
+from typing import Dict, Optional, Set, List, Tuple, Callable
 
 import os
 import yaml
@@ -55,7 +54,8 @@ from .util import error_dict
 
 
 class Pool:
-    def __init__(self, config: Dict, constants: ConsensusConstants, pool_store: Optional[AbstractPoolStore] = None):
+    def __init__(self, config: Dict, constants: ConsensusConstants, pool_store: Optional[AbstractPoolStore] = None,
+                 difficulty_function: Callable = get_new_difficulty):
         self.follow_singleton_tasks: Dict[bytes32, asyncio.Task] = {}
         self.log = logging
         # If you want to log to a file: use filename='example.log', encoding='utf-8'
@@ -92,6 +92,7 @@ class Pool:
         self.pool_url = pool_config["pool_url"]
         self.min_difficulty = uint64(pool_config["min_difficulty"])  # 10 difficulty is about 1 proof a day per plot
         self.default_difficulty: uint64 = uint64(pool_config["default_difficulty"])
+        self.difficulty_function: Callable = difficulty_function
 
         self.pending_point_partials: Optional[asyncio.Queue] = None
         self.recent_points_added: LRUCache = LRUCache(20000)
@@ -397,7 +398,8 @@ class Pool:
                             {"puzzle_hash": self.pool_fee_puzzle_hash, "amount": pool_coin_amount}
                         ]
                         for points, ph in points_and_ph:
-                            additions_sub_list.append({"puzzle_hash": ph, "amount": points * mojo_per_point})
+                            if points > 0:
+                                additions_sub_list.append({"puzzle_hash": ph, "amount": points * mojo_per_point})
 
                             if len(additions_sub_list) == self.max_additions_per_transaction:
                                 await self.pending_payments.put(additions_sub_list.copy())
@@ -549,8 +551,7 @@ class Pool:
                     # 修改读内存
                     # await self.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
                     await self.store.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
-
-                self.log.info(f"Farmer {farmer_record.launcher_id} updated points to: " f"{farmer_record.points}")
+                    self.log.info(f"Farmer {farmer_record.launcher_id} updated points to: " f"{farmer_record.points + points_received}")
         except Exception as e:
             error_stack = traceback.format_exc()
             self.log.error(f"Exception in confirming partial: {e} {error_stack}")
@@ -707,7 +708,9 @@ class Pool:
         self.farmer_update_blocked.add(launcher_id)
         await asyncio.create_task(update_farmer_later())
 
-        return PutFarmerResponse.from_json_dict(response_dict).from_json_dict()
+        # TODO Fix chia-blockchain's Streamable implementation to support Optional in `from_json_dict`, then use
+        # PutFarmerResponse here and in the trace up.
+        return response_dict
 
     async def get_and_validate_singleton_state(
         self, launcher_id: bytes32
@@ -729,19 +732,20 @@ class Pool:
                     farmer_rec,
                     self.blockchain_state["peak"].height,
                     self.confirmation_security_threshold,
+                    self.constants.GENESIS_CHALLENGE,
                 )
             )
             self.follow_singleton_tasks[launcher_id] = singleton_task
             remove_after = True
 
-        optional_result: Optional[Tuple[CoinSolution, PoolState]] = await singleton_task
+        optional_result: Optional[Tuple[CoinSolution, PoolState, PoolState]] = await singleton_task
         if remove_after and launcher_id in self.follow_singleton_tasks:
             await self.follow_singleton_tasks.pop(launcher_id)
 
         if optional_result is None:
             return None
 
-        singleton_tip, singleton_tip_state = optional_result
+        buried_singleton_tip, buried_singleton_tip_state, singleton_tip_state = optional_result
 
         # Validate state of the singleton
         is_pool_member = True
@@ -762,7 +766,9 @@ class Pool:
             self.log.info(f"Invalid singleton state {singleton_tip_state.state} for launcher_id {launcher_id}")
             is_pool_member = False
         elif singleton_tip_state.state == PoolSingletonState.LEAVING_POOL.value:
-            coin_record: Optional[CoinRecord] = await self.node_rpc_client.get_coin_record_by_name(singleton_tip.coin)
+            coin_record: Optional[CoinRecord] = await self.node_rpc_client.get_coin_record_by_name(
+                buried_singleton_tip.coin.name()
+            )
             assert coin_record is not None
             if self.blockchain_state["peak"].height - coin_record.confirmed_block_index > self.relative_lock_height:
                 self.log.info(f"launcher_id {launcher_id} got enough confirmations to leave the pool")
@@ -771,15 +777,18 @@ class Pool:
         self.log.info(f"Is {launcher_id} pool member: {is_pool_member}")
 
         if farmer_rec is not None and (
-            farmer_rec.singleton_tip != singleton_tip or farmer_rec.singleton_tip_state != singleton_tip_state
+            farmer_rec.singleton_tip != buried_singleton_tip
+            or farmer_rec.singleton_tip_state != buried_singleton_tip_state
         ):
             # This means the singleton has been changed in the blockchain (either by us or someone else). We
             # still keep track of this singleton if the farmer has changed to a different pool, in case they
             # switch back.
             self.log.info(f"Updating singleton state for {launcher_id}")
-            await self.store.update_singleton(launcher_id, singleton_tip, singleton_tip_state, is_pool_member)
+            await self.store.update_singleton(
+                launcher_id, buried_singleton_tip, buried_singleton_tip_state, is_pool_member
+            )
 
-        return singleton_tip, singleton_tip_state, is_pool_member
+        return buried_singleton_tip, buried_singleton_tip_state, is_pool_member
 
     async def process_partial(
         self,
@@ -881,7 +890,7 @@ class Pool:
                 """
 
                 # Only update the difficulty if we meet certain conditions
-                new_difficulty: uint64 = get_new_difficulty(
+                new_difficulty: uint64 = self.difficulty_function(
                     recent_partials,
                     int(self.number_of_partials_target),
                     int(self.time_target),
