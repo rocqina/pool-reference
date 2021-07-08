@@ -5,7 +5,8 @@ import time
 import traceback
 from asyncio import Task
 from math import floor
-from typing import Dict, Optional, Set, List, Tuple
+from typing import Dict, Optional, Set, List, Tuple,
+import queue
 
 import os
 import yaml
@@ -159,6 +160,13 @@ class Pool:
         # We target these many partials for this number of seconds. We adjust after receiving this many partials.
         self.number_of_partials_target: int = pool_config["number_of_partials_target"]
         self.time_target: int = pool_config["time_target"]
+
+        # kafka
+        # self.kafka_server = pool_config["kafka_server"]
+        # self.share_topic = pool_config["share_topic"]
+
+        #
+        self.partial_map = {}
 
         # Tasks (infinite While loops) for different purposes
         self.confirm_partials_loop_task: Optional[asyncio.Task] = None
@@ -538,12 +546,35 @@ class Pool:
                 )
 
                 if farmer_record.is_pool_member:
+                    # 修改读内存
+                    # await self.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
                     await self.store.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
 
                 self.log.info(f"Farmer {farmer_record.launcher_id} updated points to: " f"{farmer_record.points}")
         except Exception as e:
             error_stack = traceback.format_exc()
             self.log.error(f"Exception in confirming partial: {e} {error_stack}")
+
+    async def add_partial(self, launcher_id, timestamp, points):
+        val = (timestamp, points)
+        if self.partial_map[launcher_id] is None:
+            partial_list = [val]
+            self.partial_map[launcher_id] = partial_list
+        else:
+            partial_list =  self.partial_map[launcher_id]
+            partial_list.append(val)
+            if len(partial_list) > self.number_of_partials_target:
+                partial_list.pop(0)
+
+    async def get_recent_partials(self, launcher_id: bytes32) -> List[Tuple[uint64, uint64]]:
+        if self.partial_map.get(launcher_id) is None:
+            return []
+        else:
+            ret: List[Tuple[uint64, uint64]] = [(uint64(timestamp), uint64(difficulty)) for timestamp, difficulty in
+                                                self.partial_map.get(launcher_id)]
+            return ret
+
+
 
     async def add_farmer(self, request: PostFarmerRequest) -> Dict:
         async with self.store.lock:
@@ -633,7 +664,7 @@ class Pool:
             return error_dict(PoolErrorCode.INVALID_SINGLETON, f"Invalid singleton {request.payload.launcher_id}")
 
         last_spend, last_state, is_member = singleton_state_tuple
-        if is_member is None:
+        if not is_member :
             return error_dict(PoolErrorCode.INVALID_SINGLETON, f"Singleton is not assigned to this pool")
 
         if not AugSchemeMPL.verify(last_state.owner_pubkey, request.payload.get_hash(), request.signature):
@@ -838,9 +869,17 @@ class Pool:
             if farmer_record is not None:
                 current_difficulty = farmer_record.difficulty
                 # Decide whether to update the difficulty
+                # 是否合理，存内存行不行，是否一定要存数据库
+
                 recent_partials = await self.store.get_recent_partials(
                     partial.payload.launcher_id, self.number_of_partials_target
                 )
+                """
+                recent_partials = await self.get_recent_partials(
+                    partial.payload.launcher_id
+                )
+                """
+
                 # Only update the difficulty if we meet certain conditions
                 new_difficulty: uint64 = get_new_difficulty(
                     recent_partials,

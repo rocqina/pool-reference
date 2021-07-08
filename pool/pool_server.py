@@ -32,6 +32,7 @@ from .record import FarmerRecord
 from .pool import Pool
 from .store.abstract import AbstractPoolStore
 from .util import error_response
+from .store.mysql_store import MysqlPoolStore
 
 
 def allow_cors(response: web.Response) -> web.Response:
@@ -233,12 +234,14 @@ class PoolServer:
 
         self.pool.log.info(f"Login successful for launcher_id: {launcher_id.hex()}")
 
-        record: Optional[FarmerRecord] = await self.pool.store.get_farmer_record(launcher_id)
         response = {}
+        """
+        record: Optional[FarmerRecord] = await self.pool.store.get_farmer_record(launcher_id)
         if record is not None:
             response["farmer_record"] = record
             recent_partials = await self.pool.store.get_recent_partials(launcher_id, 20)
             response["recent_partials"] = recent_partials
+        """
 
         # TODO(pool) Do what ever you like with the successful login
         return obj_to_response(response)
@@ -284,7 +287,7 @@ async def stop():
 
 def main():
     try:
-        asyncio.run(start_pool_server())
+        asyncio.run(start_pool_server(MysqlPoolStore()))
     except KeyboardInterrupt:
         asyncio.run(stop())
 
