@@ -1,0 +1,8 @@
+syntax = "proto2"
+package sharechia
+
+message ShareMsg {
+    string launchid
+    uint64 points
+    sint64 timestamp
+}
