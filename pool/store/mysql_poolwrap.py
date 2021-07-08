@@ -38,6 +38,7 @@ class MysqlPoolWrap(object):
         count = 0
         try:
             cursor, conn, count = self.execute(sql, param)
+
             conn.commit()
             self.close(cursor, conn)
             return count

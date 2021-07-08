@@ -3,12 +3,13 @@ from dbutils.pooled_db import PooledDB
 from . import mysql_config as config
 
 
-class MysqlPool():
+class MysqlPool:
     """pool store for mysql"""
 
     __pool = None
 
     def __init__(self):
+        # 触发创建连接池
         self.conn = self.__getConn()
         self.cursor = self.conn.cursor()
 
@@ -33,7 +34,8 @@ class MysqlPool():
                 charset=config.DB_CHARSET,
                 cursorclass=DictCursor
             )
-            return self.__pool.connection()
+
+        return self.__pool.connection()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.cursor.close()
@@ -44,30 +46,6 @@ class MysqlPool():
         conn = self.__getConn()
         cursor = conn.cursor()
         return cursor, conn
-
-    def __query(self, sql, param=None):
-        if param is None:
-            count = self._cursor.execute(sql)
-        else:
-            count = self._cursor.execute(sql, param)
-        return count
-
-    def insert(self, sql, param=None):
-        """
-        @summary: 更新数据表记录
-        @param sql: ＳＱＬ格式及条件，使用(%s,%s)
-        @param param: 要更新的  值 tuple/list
-        @return: count 受影响的行数
-        """
-        return self.__query(sql, param)
-
-    def despose(self, isEnd=1):
-        if isEnd == 1:
-            self.conn.commit()
-        else:
-            self.conn.rollback()
-        self.cursor.close()
-        self.conn.close()
 
 
 def get_mysql_connection():
