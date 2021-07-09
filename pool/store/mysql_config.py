@@ -1,11 +1,11 @@
 import pymysql
 
 # mysql基本信息
-DB_HOST = ""
+DB_HOST = "rm-j6c4uf1k08i33n99pvo.mysql.rds.aliyuncs.com"
 DB_PORT = 3306
-DB_NAME = "chia_local"
-DB_USER = "root"
-DB_PASSWD = ""
+DB_NAME = "btc_local_stats"
+DB_USER = "okpool_user"
+DB_PASSWD = "b5%tY7(6rD*6Tg)B"
 
 # mysql参数信息
 # 数据库连接编码
