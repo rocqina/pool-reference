@@ -1,0 +1,24 @@
+syntax = "proto2";
+package sharebase;
+
+message FarmerMsg {
+    required string launcherid = 1;
+    optional string singletonpuzzlehash = 2;
+    optional uint64 delaytime = 3;
+    optional string delaypuzzlehash = 4;
+    optional bytes authenticationpublickey = 5;
+    optional bytes singletontip = 6;
+    optional bytes singletontipstate = 7;
+    optional uint64 points = 8;
+    optional uint64 difficulty = 9;
+    optional string payoutinstructions = 10;
+    optional bool ispoolmember = 11;
+    optional sint64 timestamp = 12;
+    optional uint32 flag = 13; //0是新纪录,1是update记录,2是update singletom,3是update难度
+}
+
+message ShareMsg {
+    required string launcherid = 1;
+    optional uint64 difficulty = 2;
+    optional sint64 timestamp = 3;
+}

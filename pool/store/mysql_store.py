@@ -37,6 +37,7 @@ class MysqlPoolStore(AbstractPoolStore):
             row[9],
             True if row[10] == 1 else False, )
 
+    # 不需要
     async def add_farmer_record(self, farmer_record: FarmerRecord) -> int:
         sql = "INSERT INTO farmer VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY " \
               "UPDATE p2_singleton_puzzle_hash = %s, delay_time = %s, delay_puzzle_hash = %s, " \
@@ -74,6 +75,7 @@ class MysqlPoolStore(AbstractPoolStore):
         count = self.wrap.insertOne(sql, param)
         return count
 
+    # 只读，会用到
     async def get_farmer_record(self, launcher_id: bytes32) -> Optional[FarmerRecord]:
         sql = "SELECT * from farmer where launcher_id=%s"
         param = (launcher_id.hex(),)
@@ -82,12 +84,14 @@ class MysqlPoolStore(AbstractPoolStore):
             return None
         return self._row_to_farmer_record(res)
 
+    # 更新难度，暂时放到这，更新的不会太频繁
     async def update_difficulty(self, launcher_id: bytes32, difficulty: uint64) -> int:
         sql = "UPDATE farmer SET difficulty=%s WHERE launcher_id=%s"
         param = (difficulty, launcher_id.hex())
         count = self.wrap.update(sql, param)
         return count
 
+    # 扔给kafka
     async def update_singleton(
             self,
             launcher_id: bytes32,
@@ -103,6 +107,7 @@ class MysqlPoolStore(AbstractPoolStore):
         count = self.wrap.update(sql, entry)
         return count
 
+    # 用不到了
     async def get_pay_to_singleton_phs(self) -> Set[bytes32]:
         sql = "SELECT p2_singleton_puzzle_hash from farmer"
         rows = self.wrap.select(sql, None, True)
@@ -112,6 +117,7 @@ class MysqlPoolStore(AbstractPoolStore):
             all_phs.add(bytes32(bytes.fromhex(row[0])))
         return all_phs
 
+    # 用不到了
     async def get_farmer_records_for_p2_singleton_phs(self, puzzle_hashes: Set[bytes32]) -> List[FarmerRecord]:
         if len(puzzle_hashes) == 0:
             return []
@@ -121,6 +127,7 @@ class MysqlPoolStore(AbstractPoolStore):
         rows = self.wrap.select(sql, None, True)
         return [self._row_to_farmer_record(row) for row in rows]
 
+    # 用不到
     async def get_farmer_points_and_payout_instructions(self) -> List[Tuple[uint64, bytes]]:
         sql = "SELECT points, payout_instructions from farmer"
         rows = self.wrap.select(sql, None, True)
@@ -138,10 +145,12 @@ class MysqlPoolStore(AbstractPoolStore):
             ret.append((total_points, ph))
         return ret
 
+    # 用不到
     async def clear_farmer_points(self) -> int:
         sql = "UPDATE farmer set points=0"
         return self.wrap.update(sql)
 
+    # 如果放到内存里，则不需要
     async def add_partial(self, launcher_id: bytes32, timestamp: uint64, difficulty: uint64):
         cursor, conn = self.wrap.getConn()
         try:
@@ -166,6 +175,7 @@ class MysqlPoolStore(AbstractPoolStore):
             conn.rollback()
             self.wrap.close(cursor, conn)
 
+    # 如果放到内存里则不需要
     async def get_recent_partials(self, launcher_id: bytes32, count: int) -> List[Tuple[uint64, uint64]]:
         sql = "SELECT timestamp, difficulty from partial WHERE launcher_id=%s ORDER BY timestamp DESC LIMIT %s"
         param = (launcher_id.hex(), count)
