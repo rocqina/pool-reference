@@ -52,7 +52,7 @@ from .singleton import create_absorb_transaction, get_singleton_state, get_coin_
 from .store.abstract import AbstractPoolStore
 from .store.sqlite_store import SqlitePoolStore
 from .record import FarmerRecord
-from .util import error_dict
+from .util import error_dict, RequestMetadata
 from .proto.chia_pb2 import FarmerMsg, ShareMsg
 
 
@@ -343,7 +343,7 @@ class Pool:
                                                 self.partial_map.get(launcher_id)]
             return ret
 
-    async def add_farmer(self, request: PostFarmerRequest) -> Dict:
+    async def add_farmer(self, request: PostFarmerRequest, metadata: RequestMetadata) -> Dict:
         async with self.store.lock:
             farmer_record: Optional[FarmerRecord] = await self.store.get_farmer_record(request.payload.launcher_id)
             if farmer_record is not None:

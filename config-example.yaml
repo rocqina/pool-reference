@@ -31,3 +31,5 @@ logging:
   log_level: INFO
   log_maxfilesrotation: 7
   log_stdout: false
+kafka_server: "127.0.0.1:9092"
+share_topic: "chia_share_topic"
