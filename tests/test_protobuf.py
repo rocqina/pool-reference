@@ -1,6 +1,6 @@
 import unittest
 import time
-from pool.proto.farmer_pb2 import FarmerMsg
+from pool.proto.chia_pb2 import FarmerMsg
 
 
 
