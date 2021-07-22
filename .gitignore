@@ -3,3 +3,4 @@ config.yaml
 venv
 __pycache__
 *.sqlite
+pool/store/mysql_config.py
