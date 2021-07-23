@@ -3,7 +3,6 @@ from pool.store.mysql_store import MysqlPoolStore
 from pool.record import FarmerRecord
 from blspy import AugSchemeMPL, G1Element
 from chia.pools.pool_wallet_info import PoolState
-from chia.types.coin_solution import CoinSolution
 
 
 class TestMysql(unittest.TestCase):
