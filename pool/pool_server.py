@@ -3,6 +3,8 @@ import logging
 import time
 import traceback
 from typing import Dict, Callable, Optional
+import os
+import yaml
 
 import aiohttp
 from blspy import AugSchemeMPL, G2Element
@@ -289,7 +291,9 @@ async def start_pool_server(pool_store: Optional[AbstractPoolStore] = None):
     )
     runner = aiohttp.web.AppRunner(app, access_log=None)
     await runner.setup()
-    site = aiohttp.web.TCPSite(runner, "0.0.0.0", int(80))
+    with open(os.getcwd() + "/config.yaml") as f:
+        pool_config: Dict = yaml.safe_load(f)
+    site = aiohttp.web.TCPSite(runner, "0.0.0.0", int(pool_config["pool_port"]))
     await site.start()
 
     while True:

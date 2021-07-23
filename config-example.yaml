@@ -6,6 +6,7 @@ pool_info:
 welcome_message: "Welcome to the reference pool!"
 pool_fee: 0.01
 pool_url: http://10.0.0.45
+pool_port: 8081
 min_difficulty: 10
 default_difficulty: 10
 default_target_address: txch1h8vdax8vtspx7yt8kz6cwu2awymlgwmdr4qts8v643kusd2lmc5qht7ltq
@@ -33,4 +34,4 @@ logging:
   log_stdout: false
 kafka_server: "127.0.0.1:9092"
 share_topic: "share_chia"
-farmer_topic: "farmer_topic"
+farmer_topic: "farmer_chia"

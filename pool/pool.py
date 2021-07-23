@@ -170,7 +170,7 @@ class Pool:
         self.kafka_server = pool_config["kafka_server"]
         self.farmer_topic = pool_config["farmer_topic"]
         self.share_topic = pool_config["share_topic"]
-        self.kafka_producer = KafkaProducer(bootstrap_server=pool_config["kafka_server"],
+        self.kafka_producer = KafkaProducer(bootstrap_servers=pool_config["kafka_server"],
                                             value_serializer=lambda m: json.dumps(m).encode())
 
         #
@@ -729,8 +729,8 @@ class Pool:
         return PostPartialResponse(current_difficulty).to_json_dict()
 
     async def produceFarmerMsg(self, msg):
-        await self.kafka_producer.send(self.farmer_topic, msg)
+        self.kafka_producer.send(self.farmer_topic, msg)
 
     async def produceShareMsg(self, msg):
-        await self.kafka_producer.send(self.share_topic, msg)
+        self.kafka_producer.send(self.share_topic, msg)
 
