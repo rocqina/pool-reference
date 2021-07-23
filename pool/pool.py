@@ -428,7 +428,7 @@ class Pool:
 
             return PostFarmerResponse(self.welcome_message).to_json_dict()
 
-    async def update_farmer(self, request: PutFarmerRequest) -> Dict:
+    async def update_farmer(self, request: PutFarmerRequest, metadata: RequestMetadata) -> Dict:
         launcher_id = request.payload.launcher_id
         # First check if this launcher_id is currently blocked for farmer updates, if so there is no reason to validate
         # all the stuff below
