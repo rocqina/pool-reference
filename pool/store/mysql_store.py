@@ -29,17 +29,17 @@ class MysqlPoolStore(AbstractPoolStore):
     @staticmethod
     def _row_to_farmer_record(res) -> FarmerRecord:
         return FarmerRecord(
-            bytes.fromhex(res.launcher_id),
-            bytes.fromhex(res.p2_singleton_puzzle_hash),
-            res.delay_time,
-            bytes.fromhex(res.delay_puzzle_hash),
-            G1Element.from_bytes(bytes.fromhex(res.authentication_public_key)),
-            CoinSpend.from_bytes(bytes.fromhex(res.singleton_tip)),
-            PoolState.from_bytes(bytes.fromhex(res.singleton_tip_state)),
-            res.accept_account,
-            res.difficulty,
-            res.payout_instructions,
-            True if res.is_pool_member == 1 else False, )
+            bytes.fromhex(res["launcher_id"]),
+            bytes.fromhex(res["p2_singleton_puzzle_hash"]),
+            res["delay_time"],
+            bytes.fromhex(res["delay_puzzle_hash"]),
+            G1Element.from_bytes(bytes.fromhex(res["authentication_public_key"])),
+            CoinSpend.from_bytes(bytes.fromhex(res["singleton_tip"])),
+            PoolState.from_bytes(bytes.fromhex(res["singleton_tip_state"])),
+            res["accept_account"],
+            res["difficulty"],
+            res["payout_instructions"],
+            True if res["is_pool_member"] == 1 else False, )
 
     # 不需要
     async def add_farmer_record(self, farmer_record: FarmerRecord) -> int:
