@@ -27,19 +27,19 @@ class MysqlPoolStore(AbstractPoolStore):
         pass
 
     @staticmethod
-    def _row_to_farmer_record(row) -> FarmerRecord:
+    def _row_to_farmer_record(res) -> FarmerRecord:
         return FarmerRecord(
-            bytes.fromhex(row[0]),
-            bytes.fromhex(row[1]),
-            row[2],
-            bytes.fromhex(row[3]),
-            G1Element.from_bytes(bytes.fromhex(row[4])),
-            CoinSpend.from_bytes(row[5]),
-            PoolState.from_bytes(row[6]),
-            row[7],
-            row[8],
-            row[9],
-            True if row[10] == 1 else False, )
+            bytes.fromhex(res.launcher_id),
+            bytes.fromhex(res.p2_singleton_puzzle_hash),
+            res.delay_time,
+            bytes.fromhex(res.delay_puzzle_hash),
+            G1Element.from_bytes(bytes.fromhex(res.authentication_public_key)),
+            CoinSpend.from_bytes(bytes.fromhex(res.singleton_tip)),
+            PoolState.from_bytes(bytes.fromhex(res.singleton_tip_state)),
+            res.accept_account,
+            res.difficulty,
+            res.payout_instructions,
+            True if res.is_pool_member == 1 else False, )
 
     # 不需要
     async def add_farmer_record(self, farmer_record: FarmerRecord) -> int:
@@ -85,11 +85,10 @@ class MysqlPoolStore(AbstractPoolStore):
         sql = "SELECT * from MINING_WORKERS_CHIA where launcher_id=%s"
         param = (launcher_id.hex(),)
         res = self.wrap.select(sql, param, True)
-        if res is None:
+        if not res:
             return None
-        log.info(sql)
         log.info(res)
-        return self._row_to_farmer_record(res)
+        return self._row_to_farmer_record(res[0])
 
     # 更新难度，暂时放到这，更新的不会太频繁
     async def update_difficulty(self, launcher_id: bytes32, difficulty: uint64) -> int:
