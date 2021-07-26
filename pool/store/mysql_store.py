@@ -1,4 +1,5 @@
 from typing import Optional, Set, List, Tuple, Dict
+import logging
 
 from blspy import G1Element
 from chia.pools.pool_wallet_info import PoolState
@@ -9,6 +10,9 @@ from chia.util.ints import uint64
 from .abstract import AbstractPoolStore
 from .mysql_poolwrap import MysqlPoolWrap
 from ..record import FarmerRecord
+
+log = logging
+log.basicConfig(level=logging.INFO)
 
 
 class MysqlPoolStore(AbstractPoolStore):
@@ -54,7 +58,7 @@ class MysqlPoolStore(AbstractPoolStore):
             farmer_record.points,
             farmer_record.difficulty,
             farmer_record.payout_instructions,
-            int(farmer_record.is_pool_member,),
+            int(farmer_record.is_pool_member, ),
 
             farmer_record.p2_singleton_puzzle_hash.hex(),
             farmer_record.delay_time,
@@ -67,11 +71,12 @@ class MysqlPoolStore(AbstractPoolStore):
             farmer_record.payout_instructions,
             int(farmer_record.is_pool_member, ),
         )
+        log.INFO(sql)
         count = self.wrap.insertOne(sql, param)
         return count
 
     # for test
-    def add_farmer_record1(self, sql ,param) -> int:
+    def add_farmer_record1(self, sql, param) -> int:
         count = self.wrap.insertOne(sql, param)
         return count
 
@@ -82,6 +87,8 @@ class MysqlPoolStore(AbstractPoolStore):
         res = self.wrap.select(sql, param, True)
         if res is None:
             return None
+        log.INFO(sql)
+        log.INFO(res)
         return self._row_to_farmer_record(res)
 
     # 更新难度，暂时放到这，更新的不会太频繁
@@ -183,4 +190,3 @@ class MysqlPoolStore(AbstractPoolStore):
         rows = self.wrap.select(sql, param, True)
         ret: List[Tuple[uint64, uint64]] = [(uint64(timestamp), uint64(difficulty)) for timestamp, difficulty in rows]
         return ret
-
