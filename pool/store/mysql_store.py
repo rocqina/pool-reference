@@ -86,6 +86,7 @@ class MysqlPoolStore(AbstractPoolStore):
         param = (launcher_id.hex(),)
         res = self.wrap.select(sql, param, True)
         if not res:
+            log.debug("can not find any record for launcher_id:%s", launcher_id.hex())
             return None
         log.info(res)
         return self._row_to_farmer_record(res[0])

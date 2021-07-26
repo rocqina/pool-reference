@@ -170,8 +170,7 @@ class Pool:
         self.kafka_server = pool_config["kafka_server"]
         self.farmer_topic = pool_config["farmer_topic"]
         self.share_topic = pool_config["share_topic"]
-        self.kafka_producer = KafkaProducer(bootstrap_servers=pool_config["kafka_server"],
-                                            value_serializer=lambda m: json.dumps(m).encode())
+        self.kafka_producer = KafkaProducer(bootstrap_servers=pool_config["kafka_server"])
 
         #
         self.partial_map = {}
