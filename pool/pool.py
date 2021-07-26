@@ -413,8 +413,8 @@ class Pool:
             msg.delaytime = delay_time
             msg.delaypuzzlehash = delay_puzzle_hash.hex()
             msg.authenticationpublickey = bytes(request.payload.authentication_public_key).hex()
-            msg.singletontip = bytes(last_spend)
-            msg.singletontipstate = bytes(last_state)
+            msg.singletontip = bytes(last_spend).hex()
+            msg.singletontipstate = bytes(last_state).hex()
             msg.points = 0
             msg.difficulty = difficulty
             msg.payoutinstructions = request.payload.payout_instructions
@@ -487,16 +487,16 @@ class Pool:
 
             msg = FarmerMsg()
             msg.launcherid = record.launcher_id.hex()
-            msg.singletonpuzzlehash = record.p2_singleton_puzzle_hash.hex()
-            msg.delaytime = record.delay_time
-            msg.delaypuzzlehash = record.delay_puzzle_hash.hex()
+            #msg.singletonpuzzlehash = record.p2_singleton_puzzle_hash.hex()
+            #msg.delaytime = record.delay_time
+            #msg.delaypuzzlehash = record.delay_puzzle_hash.hex()
             msg.authenticationpublickey = bytes(record.authentication_public_key).hex()
-            msg.singletontip = bytes(record.singleton_tip)
-            msg.singletontipstate = bytes(record.singleton_tip_state)
-            msg.points = record.points
+            #msg.singletontip = bytes(record.singleton_tip).hex()
+            #msg.singletontipstate = bytes(record.singleton_tip_state).hex()
+            #msg.points = record.points
             msg.difficulty = record.difficulty
             msg.payoutinstructions = record.payout_instructions
-            msg.ispoolmember = record.is_pool_member
+            #msg.ispoolmember = record.is_pool_member
             msg.timestamp = uint64(int(time.time()))  # 是不是需要int64还是直接用int
             msg.flag = 1
             await self.produceFarmerMsg(msg.SerializeToString())
@@ -588,8 +588,8 @@ class Pool:
 
             msg = FarmerMsg()
             msg.launcherid = launcher_id.hex()
-            msg.singletontip = bytes(buried_singleton_tip)
-            msg.singletontipstate = bytes(buried_singleton_tip_state)
+            msg.singletontip = bytes(buried_singleton_tip).hex()
+            msg.singletontipstate = bytes(buried_singleton_tip_state).hex()
             msg.ispoolmember = is_pool_member
             msg.timestamp = uint64(int(time.time()))  # 是不是需要int64还是直接用int
             msg.flag = 2

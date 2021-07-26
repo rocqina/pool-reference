@@ -7,8 +7,8 @@ message FarmerMsg {
     optional uint64 delaytime = 3;
     optional string delaypuzzlehash = 4;
     optional string authenticationpublickey = 5;
-    optional bytes singletontip = 6;
-    optional bytes singletontipstate = 7;
+    optional string singletontip = 6;
+    optional string singletontipstate = 7;
     optional uint64 points = 8;
     optional uint64 difficulty = 9;
     optional string payoutinstructions = 10;

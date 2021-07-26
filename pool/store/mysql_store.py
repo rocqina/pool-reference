@@ -29,16 +29,16 @@ class MysqlPoolStore(AbstractPoolStore):
     @staticmethod
     def _row_to_farmer_record(res) -> FarmerRecord:
         return FarmerRecord(
-            bytes.fromhex(res["launcher_id"]),
-            bytes.fromhex(res["p2_singleton_puzzle_hash"]),
+            bytes.fromhex(res["launcher_id"].decode()),
+            bytes.fromhex(res["p2_singleton_puzzle_hash"].decode()),
             res["delay_time"],
-            bytes.fromhex(res["delay_puzzle_hash"]),
-            G1Element.from_bytes(bytes.fromhex(res["authentication_public_key"])),
-            CoinSpend.from_bytes(bytes.fromhex(res["singleton_tip"])),
-            PoolState.from_bytes(bytes.fromhex(res["singleton_tip_state"])),
+            bytes.fromhex(res["delay_puzzle_hash"].decode()),
+            G1Element.from_bytes(bytes.fromhex(res["authentication_public_key"].decode())),
+            CoinSpend.from_bytes(bytes.fromhex(res["singleton_tip"].decode())),
+            PoolState.from_bytes(bytes.fromhex(res["singleton_tip_state"].decode())),
             res["accept_account"],
             res["difficulty"],
-            res["payout_instructions"],
+            res["payout_instructions"].decode(),
             True if res["is_pool_member"] == 1 else False, )
 
     # 不需要
