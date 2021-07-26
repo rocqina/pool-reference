@@ -159,7 +159,6 @@ class PoolServer:
         if authentication_token_error is not None:
             return authentication_token_error
 
-        post_farmer_response = await self.pool.add_farmer(post_farmer_request)
         post_farmer_response = await self.pool.add_farmer(
             post_farmer_request, self.post_metadata_from_request(request_obj))
 

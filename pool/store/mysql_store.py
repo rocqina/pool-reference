@@ -39,7 +39,7 @@ class MysqlPoolStore(AbstractPoolStore):
 
     # 不需要
     async def add_farmer_record(self, farmer_record: FarmerRecord) -> int:
-        sql = "INSERT INTO farmer VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY " \
+        sql = "INSERT INTO MINING_WORKERS_CHIA VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY " \
               "UPDATE p2_singleton_puzzle_hash = %s, delay_time = %s, delay_puzzle_hash = %s, " \
               "authentication_public_key = %s, singleton_tip = %s, singleton_tip_state = %s, " \
               "points = %s, difficulty = %s, payout_instructions = %s, is_pool_member = %s"
@@ -77,7 +77,7 @@ class MysqlPoolStore(AbstractPoolStore):
 
     # 只读，会用到
     async def get_farmer_record(self, launcher_id: bytes32) -> Optional[FarmerRecord]:
-        sql = "SELECT * from farmer where launcher_id=%s"
+        sql = "SELECT * from MINING_WORKERS_CHIA where launcher_id=%s"
         param = (launcher_id.hex(),)
         res = self.wrap.select(sql, param, True)
         if res is None:
@@ -86,7 +86,7 @@ class MysqlPoolStore(AbstractPoolStore):
 
     # 更新难度，暂时放到这，更新的不会太频繁
     async def update_difficulty(self, launcher_id: bytes32, difficulty: uint64) -> int:
-        sql = "UPDATE farmer SET difficulty=%s WHERE launcher_id=%s"
+        sql = "UPDATE MINING_WORKERS_CHIA SET difficulty=%s WHERE launcher_id=%s"
         param = (difficulty, launcher_id.hex())
         count = self.wrap.update(sql, param)
         return count
@@ -103,13 +103,14 @@ class MysqlPoolStore(AbstractPoolStore):
             entry = (bytes(singleton_tip), bytes(singleton_tip_state), 1, launcher_id.hex())
         else:
             entry = (bytes(singleton_tip), bytes(singleton_tip_state), 0, launcher_id.hex())
-        sql = "UPDATE farmer SET singleton_tip=%s, singleton_tip_state=%s, is_pool_member=%s WHERE launcher_id=%s"
+        sql = "UPDATE MINING_WORKERS_CHIA SET singleton_tip=%s, singleton_tip_state=%s, is_pool_member=%s WHERE " \
+              "launcher_id=%s "
         count = self.wrap.update(sql, entry)
         return count
 
     # 用不到了
     async def get_pay_to_singleton_phs(self) -> Set[bytes32]:
-        sql = "SELECT p2_singleton_puzzle_hash from farmer"
+        sql = "SELECT p2_singleton_puzzle_hash from MINING_WORKERS_CHIA"
         rows = self.wrap.select(sql, None, True)
 
         all_phs: Set[bytes32] = set()
@@ -122,14 +123,14 @@ class MysqlPoolStore(AbstractPoolStore):
         if len(puzzle_hashes) == 0:
             return []
         puzzle_hashes_db = tuple([ph.hex() for ph in list(puzzle_hashes)])
-        sql = "SELECT * from farmer WHERE p2_singleton_puzzle_hash in ({})".format(
+        sql = "SELECT * from MINING_WORKERS_CHIA WHERE p2_singleton_puzzle_hash in ({})".format(
             ','.join(["'%s'" % item for item in puzzle_hashes_db]))
         rows = self.wrap.select(sql, None, True)
         return [self._row_to_farmer_record(row) for row in rows]
 
     # 用不到
     async def get_farmer_points_and_payout_instructions(self) -> List[Tuple[uint64, bytes]]:
-        sql = "SELECT points, payout_instructions from farmer"
+        sql = "SELECT points, payout_instructions from MINING_WORKERS_CHIA"
         rows = self.wrap.select(sql, None, True)
         accumulated: Dict[bytes32, uint64] = {}
         for row in rows:
@@ -147,7 +148,7 @@ class MysqlPoolStore(AbstractPoolStore):
 
     # 用不到
     async def clear_farmer_points(self) -> int:
-        sql = "UPDATE farmer set points=0"
+        sql = "UPDATE MINING_WORKERS_CHIA set points=0"
         return self.wrap.update(sql)
 
     # 如果放到内存里，则不需要

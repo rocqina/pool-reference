@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto2',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\nchia.proto\x12\tsharebase\"\xb1\x02\n\tFarmerMsg\x12\x12\n\nlauncherid\x18\x01 \x02(\t\x12\x1b\n\x13singletonpuzzlehash\x18\x02 \x01(\t\x12\x11\n\tdelaytime\x18\x03 \x01(\x04\x12\x17\n\x0f\x64\x65laypuzzlehash\x18\x04 \x01(\t\x12\x1f\n\x17\x61uthenticationpublickey\x18\x05 \x01(\x0c\x12\x14\n\x0csingletontip\x18\x06 \x01(\x0c\x12\x19\n\x11singletontipstate\x18\x07 \x01(\x0c\x12\x0e\n\x06points\x18\x08 \x01(\x04\x12\x12\n\ndifficulty\x18\t \x01(\x04\x12\x1a\n\x12payoutinstructions\x18\n \x01(\t\x12\x14\n\x0cispoolmember\x18\x0b \x01(\x08\x12\x11\n\ttimestamp\x18\x0c \x01(\x04\x12\x0c\n\x04\x66lag\x18\r \x01(\r\"E\n\x08ShareMsg\x12\x12\n\nlauncherid\x18\x01 \x02(\t\x12\x12\n\ndifficulty\x18\x02 \x01(\x04\x12\x11\n\ttimestamp\x18\x03 \x01(\x04'
+  serialized_pb=b'\n\nchia.proto\x12\tsharebase\"\xb1\x02\n\tFarmerMsg\x12\x12\n\nlauncherid\x18\x01 \x02(\t\x12\x1b\n\x13singletonpuzzlehash\x18\x02 \x01(\t\x12\x11\n\tdelaytime\x18\x03 \x01(\x04\x12\x17\n\x0f\x64\x65laypuzzlehash\x18\x04 \x01(\t\x12\x1f\n\x17\x61uthenticationpublickey\x18\x05 \x01(\t\x12\x14\n\x0csingletontip\x18\x06 \x01(\x0c\x12\x19\n\x11singletontipstate\x18\x07 \x01(\x0c\x12\x0e\n\x06points\x18\x08 \x01(\x04\x12\x12\n\ndifficulty\x18\t \x01(\x04\x12\x1a\n\x12payoutinstructions\x18\n \x01(\t\x12\x14\n\x0cispoolmember\x18\x0b \x01(\x08\x12\x11\n\ttimestamp\x18\x0c \x01(\x12\x12\x0c\n\x04\x66lag\x18\r \x01(\r\"E\n\x08ShareMsg\x12\x12\n\nlauncherid\x18\x01 \x02(\t\x12\x12\n\ndifficulty\x18\x02 \x01(\x04\x12\x11\n\ttimestamp\x18\x03 \x01(\x12'
 )
 
 
@@ -63,8 +63,8 @@ _FARMERMSG = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='authenticationpublickey', full_name='sharebase.FarmerMsg.authenticationpublickey', index=4,
-      number=5, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"",
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -112,7 +112,7 @@ _FARMERMSG = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='timestamp', full_name='sharebase.FarmerMsg.timestamp', index=11,
-      number=12, type=4, cpp_type=4, label=1,
+      number=12, type=18, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -165,7 +165,7 @@ _SHAREMSG = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='timestamp', full_name='sharebase.ShareMsg.timestamp', index=2,
-      number=3, type=4, cpp_type=4, label=1,
+      number=3, type=18, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,

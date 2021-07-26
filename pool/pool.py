@@ -413,7 +413,7 @@ class Pool:
             msg.singletonpuzzlehash = p2_singleton_puzzle_hash.hex()
             msg.delaytime = delay_time
             msg.delaypuzzlehash = delay_puzzle_hash.hex()
-            msg.authenticationpublickey = bytes(request.payload.authentication_public_key.hex())
+            msg.authenticationpublickey = bytes(request.payload.authentication_public_key).hex()
             msg.singletontip = bytes(last_spend)
             msg.singletontipstate = bytes(last_state)
             msg.points = 0
@@ -491,7 +491,7 @@ class Pool:
             msg.singletonpuzzlehash = record.p2_singleton_puzzle_hash.hex()
             msg.delaytime = record.delay_time
             msg.delaypuzzlehash = record.delay_puzzle_hash.hex()
-            msg.authenticationpublickey = bytes(record.authentication_public_key.hex())
+            msg.authenticationpublickey = bytes(record.authentication_public_key).hex()
             msg.singletontip = bytes(record.singleton_tip)
             msg.singletontipstate = bytes(record.singleton_tip_state)
             msg.points = record.points
