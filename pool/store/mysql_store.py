@@ -71,7 +71,7 @@ class MysqlPoolStore(AbstractPoolStore):
             farmer_record.payout_instructions,
             int(farmer_record.is_pool_member, ),
         )
-        log.INFO(sql)
+        log.info(sql)
         count = self.wrap.insertOne(sql, param)
         return count
 
@@ -87,8 +87,8 @@ class MysqlPoolStore(AbstractPoolStore):
         res = self.wrap.select(sql, param, True)
         if res is None:
             return None
-        log.INFO(sql)
-        log.INFO(res)
+        log.info(sql)
+        log.info(res)
         return self._row_to_farmer_record(res)
 
     # 更新难度，暂时放到这，更新的不会太频繁
