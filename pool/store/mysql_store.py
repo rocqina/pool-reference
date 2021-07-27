@@ -47,6 +47,7 @@ class MysqlPoolStore(AbstractPoolStore):
               "UPDATE p2_singleton_puzzle_hash = %s, delay_time = %s, delay_puzzle_hash = %s, " \
               "authentication_public_key = %s, singleton_tip = %s, singleton_tip_state = %s, " \
               "points = %s, difficulty = %s, payout_instructions = %s, is_pool_member = %s"
+
         param = (
             farmer_record.launcher_id.hex(),
             farmer_record.p2_singleton_puzzle_hash.hex(),
@@ -58,7 +59,7 @@ class MysqlPoolStore(AbstractPoolStore):
             farmer_record.points,
             farmer_record.difficulty,
             farmer_record.payout_instructions,
-            int(farmer_record.is_pool_member, ),
+            int(farmer_record.is_pool_member),
 
             farmer_record.p2_singleton_puzzle_hash.hex(),
             farmer_record.delay_time,
@@ -69,7 +70,7 @@ class MysqlPoolStore(AbstractPoolStore):
             farmer_record.points,
             farmer_record.difficulty,
             farmer_record.payout_instructions,
-            int(farmer_record.is_pool_member, ),
+            int(farmer_record.is_pool_member),
         )
         log.info(sql)
         count = self.wrap.insertOne(sql, param)

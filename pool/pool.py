@@ -407,6 +407,7 @@ class Pool:
                 request.payload.payout_instructions,
                 True,
             )
+            """
             msg = FarmerMsg()
             msg.launcherid = request.payload.launcher_id.hex()
             msg.singletonpuzzlehash = p2_singleton_puzzle_hash.hex()
@@ -422,8 +423,9 @@ class Pool:
             msg.timestamp = uint64(int(time.time()))  # 是不是需要int64还是直接用int
             msg.flag = 0
             await self.produceFarmerMsg(msg.SerializeToString())
+            """
             # 当新农民加入进来的时候，需要增加，并不频繁
-            # await self.store.add_farmer_record(farmer_record)
+            await self.store.add_farmer_record(farmer_record)
 
             return PostFarmerResponse(self.welcome_message).to_json_dict()
 
