@@ -196,6 +196,7 @@ class PoolServer:
         request = await request_obj.json()
         partial: PostPartialRequest = PostPartialRequest.from_json_dict(request)
 
+        self.pool.log.info(f"post_partial launcher_id: {partial.payload.launcher_id.hex()}")
         authentication_token_error = check_authentication_token(
             partial.payload.launcher_id,
             partial.payload.authentication_token,
