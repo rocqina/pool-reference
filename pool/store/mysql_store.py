@@ -1,5 +1,5 @@
 from typing import Optional, Set, List, Tuple, Dict
-import logging, time
+import logging, datetime
 
 from blspy import G1Element
 from chia.pools.pool_wallet_info import PoolState
@@ -43,6 +43,8 @@ class MysqlPoolStore(AbstractPoolStore):
 
     # 不需要
     async def add_farmer_record(self, farmer_record: FarmerRecord) -> int:
+        now = datetime.datetime.now()
+        now = now.strftime("%Y-%m-%d %H:%M:%S")
         sql = "INSERT INTO MINING_WORKERS_CHIA VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, " \
               "%s) ON DUPLICATE KEY " \
               "UPDATE p2_singleton_puzzle_hash = %s, delay_time = %s, delay_puzzle_hash = %s, " \
@@ -61,8 +63,8 @@ class MysqlPoolStore(AbstractPoolStore):
             farmer_record.difficulty,
             farmer_record.payout_instructions,
             int(farmer_record.is_pool_member),
-            int(time.time()),
-            int(time.time()),
+            now,
+            now,
             farmer_record.p2_singleton_puzzle_hash.hex(),
             farmer_record.delay_time,
             farmer_record.delay_puzzle_hash.hex(),
@@ -73,7 +75,7 @@ class MysqlPoolStore(AbstractPoolStore):
             farmer_record.difficulty,
             farmer_record.payout_instructions,
             int(farmer_record.is_pool_member),
-            int(time.time())
+            now
         )
         log.info(sql)
         count = self.wrap.insertOne(sql, param)
