@@ -104,7 +104,6 @@ class MysqlPoolStore(AbstractPoolStore):
         count = self.wrap.update(sql, param)
         return count
 
-    # 扔给kafka
     async def update_singleton(
             self,
             launcher_id: bytes32,

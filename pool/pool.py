@@ -484,9 +484,9 @@ class Pool:
         async def update_farmer_later():
             await asyncio.sleep(self.farmer_update_cooldown_seconds)
 
+            """
             # 发送给kafka
             record = FarmerRecord.from_json_dict(farmer_dict)
-
             msg = FarmerMsg()
             msg.launcherid = record.launcher_id.hex()
             #msg.singletonpuzzlehash = record.p2_singleton_puzzle_hash.hex()
@@ -502,9 +502,10 @@ class Pool:
             msg.timestamp = uint64(int(time.time()))  # 是不是需要int64还是直接用int
             msg.flag = 1
             await self.produceFarmerMsg(msg.SerializeToString())
+            """
 
             # 没有用户提交partial，只是更改基本信息
-            # await self.store.add_farmer_record(FarmerRecord.from_json_dict(farmer_dict))
+            await self.store.add_farmer_record(FarmerRecord.from_json_dict(farmer_dict))
             self.farmer_update_blocked.remove(launcher_id)
             self.log.info(f"Updated farmer: {response_dict}")
 
@@ -588,6 +589,7 @@ class Pool:
             # switch back.
             self.log.info(f"Updating singleton state for {launcher_id}")
 
+            """
             msg = FarmerMsg()
             msg.launcherid = launcher_id.hex()
             msg.singletontip = bytes(buried_singleton_tip).hex()
@@ -601,7 +603,6 @@ class Pool:
             await self.store.update_singleton(
                 launcher_id, buried_singleton_tip, buried_singleton_tip_state, is_pool_member
             )
-            """
 
         return buried_singleton_tip, buried_singleton_tip_state, is_pool_member
 
@@ -715,6 +716,7 @@ class Pool:
                 )
 
                 if current_difficulty != new_difficulty:
+                    """
                     msg = FarmerMsg()
                     msg.launcherid = partial.payload.launcher_id.hex()
                     msg.difficulty = new_difficulty
@@ -724,7 +726,6 @@ class Pool:
                     """
                     # 更新难度，更新的并不频繁
                     await self.store.update_difficulty(partial.payload.launcher_id, new_difficulty)
-                    """
                     current_difficulty = new_difficulty
 
         return PostPartialResponse(current_difficulty).to_json_dict()
@@ -733,5 +734,6 @@ class Pool:
         self.kafka_producer.send(self.farmer_topic, msg)
 
     async def produceShareMsg(self, msg):
+        self.log.info("produceShareMsg msg:%s", msg)
         self.kafka_producer.send(self.share_topic, msg)
 
