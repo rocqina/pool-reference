@@ -1,5 +1,5 @@
 from typing import Optional, Set, List, Tuple, Dict
-import logging
+import logging, time
 
 from blspy import G1Element
 from chia.pools.pool_wallet_info import PoolState
@@ -43,10 +43,11 @@ class MysqlPoolStore(AbstractPoolStore):
 
     # 不需要
     async def add_farmer_record(self, farmer_record: FarmerRecord) -> int:
-        sql = "INSERT INTO MINING_WORKERS_CHIA VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY " \
+        sql = "INSERT INTO MINING_WORKERS_CHIA VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, " \
+              "%s) ON DUPLICATE KEY " \ 
               "UPDATE p2_singleton_puzzle_hash = %s, delay_time = %s, delay_puzzle_hash = %s, " \
               "authentication_public_key = %s, singleton_tip = %s, singleton_tip_state = %s, " \
-              "points = %s, difficulty = %s, payout_instructions = %s, is_pool_member = %s"
+              "points = %s, difficulty = %s, payout_instructions = %s, is_pool_member = %s, updated_at = %s"
 
         param = (
             farmer_record.launcher_id.hex(),
@@ -60,7 +61,8 @@ class MysqlPoolStore(AbstractPoolStore):
             farmer_record.difficulty,
             farmer_record.payout_instructions,
             int(farmer_record.is_pool_member),
-
+            int(time.time()),
+            int(time.time()),
             farmer_record.p2_singleton_puzzle_hash.hex(),
             farmer_record.delay_time,
             farmer_record.delay_puzzle_hash.hex(),
@@ -71,6 +73,7 @@ class MysqlPoolStore(AbstractPoolStore):
             farmer_record.difficulty,
             farmer_record.payout_instructions,
             int(farmer_record.is_pool_member),
+            int(time.time())
         )
         log.info(sql)
         count = self.wrap.insertOne(sql, param)
