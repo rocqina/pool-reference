@@ -307,7 +307,7 @@ class Pool:
 
                 if farmer_record.is_pool_member:
                     # 修改读内存
-                    await self.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
+                    self.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
 
                     # 向后台统计模块发送share
                     msg = ShareMsg()
@@ -323,9 +323,9 @@ class Pool:
             error_stack = traceback.format_exc()
             self.log.error(f"Exception in confirming partial: {e} {error_stack}")
 
-    async def add_partial(self, launcher_id, timestamp, points):
+    def add_partial(self, launcher_id, timestamp, points):
         val = (timestamp, points)
-        if self.partial_map[launcher_id] is None:
+        if self.partial_map.get(launcher_id) is None:
             partial_list = [val]
             self.partial_map[launcher_id] = partial_list
         else:
@@ -334,7 +334,7 @@ class Pool:
             if len(partial_list) > self.number_of_partials_target:
                 partial_list.pop(0)
 
-    async def get_recent_partials(self, launcher_id: bytes32) -> List[Tuple[uint64, uint64]]:
+    def get_recent_partials(self, launcher_id: bytes32) -> List[Tuple[uint64, uint64]]:
         if self.partial_map.get(launcher_id) is None:
             return []
         else:
@@ -696,14 +696,14 @@ class Pool:
                 # Decide whether to update the difficulty
                 # 是否合理，存内存行不行，是否一定要存数据库
 
+                """
                 recent_partials = await self.store.get_recent_partials(
                     partial.payload.launcher_id, self.number_of_partials_target
                 )
                 """
-                recent_partials = await self.get_recent_partials(
+                recent_partials = self.get_recent_partials(
                     partial.payload.launcher_id
                 )
-                """
 
                 # Only update the difficulty if we meet certain conditions
                 new_difficulty: uint64 = self.difficulty_function(
