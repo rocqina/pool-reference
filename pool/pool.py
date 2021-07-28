@@ -9,9 +9,6 @@ from typing import Dict, Optional, Set, List, Tuple, Callable
 import json
 from kafka import KafkaProducer
 
-import os
-import yaml
-
 from blspy import AugSchemeMPL, G1Element
 from chia.consensus.block_rewards import calculate_pool_reward
 from chia.pools.pool_wallet_info import PoolState, PoolSingletonState
@@ -57,16 +54,12 @@ from .proto.chia_pb2 import FarmerMsg, ShareMsg
 
 
 class Pool:
-    def __init__(self, config: Dict, constants: ConsensusConstants, pool_store: Optional[AbstractPoolStore] = None,
+    def __init__(self, config: Dict, pool_config: Dict, constants: ConsensusConstants, pool_store: Optional[AbstractPoolStore] = None,
                  difficulty_function: Callable = get_new_difficulty):
         self.follow_singleton_tasks: Dict[bytes32, asyncio.Task] = {}
         self.log = logging
         # If you want to log to a file: use filename='example.log', encoding='utf-8'
         self.log.basicConfig(level=logging.INFO)
-
-        # We load our configurations from here
-        with open(os.getcwd() + "/config.yaml") as f:
-            pool_config: Dict = yaml.safe_load(f)
 
         initialize_logging("pool", pool_config["logging"], pathlib.Path(pool_config["logging"]["log_path"]))
 
