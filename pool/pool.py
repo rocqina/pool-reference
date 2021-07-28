@@ -311,7 +311,7 @@ class Pool:
 
                     # 向后台统计模块发送share
                     msg = ShareMsg()
-                    msg.launcherid = partial.payload.launcher_id
+                    msg.launcherid = partial.payload.launcher_id.hex()
                     msg.points = points_received
                     msg.timestamp = uint64(int(time.time()))
                     self.produceShareMsg(msg.SerializeToString())
