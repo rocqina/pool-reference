@@ -305,7 +305,7 @@ class Pool:
                     # 向后台统计模块发送share
                     msg = ShareMsg()
                     msg.launcherid = partial.payload.launcher_id.hex()
-                    msg.points = points_received
+                    msg.difficulty = points_received
                     msg.timestamp = uint64(int(time.time()))
                     self.produceShareMsg(msg.SerializeToString())
 
@@ -723,10 +723,10 @@ class Pool:
 
         return PostPartialResponse(current_difficulty).to_json_dict()
 
-    async def produceFarmerMsg(self, msg):
+    def produceFarmerMsg(self, msg):
         self.kafka_producer.send(self.farmer_topic, msg)
 
-    async def produceShareMsg(self, msg):
+    def produceShareMsg(self, msg):
         self.log.info("produceShareMsg msg:%s", msg)
         self.kafka_producer.send(self.share_topic, msg)
 

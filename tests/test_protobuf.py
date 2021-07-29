@@ -3,7 +3,6 @@ import time
 from pool.proto.chia_pb2 import FarmerMsg
 
 
-
 class TestProtobuf(unittest.TestCase):
     def test_sendproto(self):
         msg = FarmerMsg()
