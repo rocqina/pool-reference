@@ -43,6 +43,7 @@ def get_new_difficulty(
         return max(min_difficulty, uint64(int(current_difficulty // 1.5)))
 
     # If we don't have enough partials at this difficulty, don't update yet
+    log.info(f"recent_partials[0][0] is {recent_partials[0][0]},  recent_partials[-1][0] is {recent_partials[-1][0]}")
     time_taken = uint64(recent_partials[0][0] - recent_partials[-1][0])
 
     # If we don't have enough partials at this difficulty and time between last and

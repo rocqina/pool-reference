@@ -165,6 +165,8 @@ class Pool:
         self.share_topic = pool_config["share_topic"]
         self.kafka_producer = KafkaProducer(bootstrap_servers=pool_config["kafka_server"])
 
+        self.dev_mode = pool_config["dev_mode"]
+
         #
         self.partial_map = {}
 
@@ -609,12 +611,13 @@ class Pool:
         message: bytes32 = partial.payload.get_hash()
         pk1: G1Element = partial.payload.proof_of_space.plot_public_key
         pk2: G1Element = farmer_record.authentication_public_key
-        valid_sig = AugSchemeMPL.aggregate_verify([pk1, pk2], [message, message], partial.aggregate_signature)
-        if not valid_sig:
-            return error_dict(
-                PoolErrorCode.INVALID_SIGNATURE,
-                f"The aggregate signature is invalid {partial.aggregate_signature}",
-            )
+        if self.dev_mode:
+            valid_sig = AugSchemeMPL.aggregate_verify([pk1, pk2], [message, message], partial.aggregate_signature)
+            if not valid_sig:
+                return error_dict(
+                    PoolErrorCode.INVALID_SIGNATURE,
+                    f"The aggregate signature is invalid {partial.aggregate_signature}",
+                )
 
         if partial.payload.proof_of_space.pool_contract_puzzle_hash != farmer_record.p2_singleton_puzzle_hash:
             return error_dict(
@@ -628,56 +631,58 @@ class Pool:
             else:
                 return await self.node_rpc_client.get_recent_signage_point_or_eos(partial.payload.sp_hash, None)
 
-        response = await get_signage_point_or_eos()
-        if response is None:
-            # Try again after 10 seconds in case we just didn't yet receive the signage point
-            await asyncio.sleep(10)
+        if self.dev_mode:
             response = await get_signage_point_or_eos()
+            if response is None:
+                # Try again after 10 seconds in case we just didn't yet receive the signage point
+                await asyncio.sleep(10)
+                response = await get_signage_point_or_eos()
 
-        if response is None or response["reverted"]:
-            return error_dict(
-                PoolErrorCode.NOT_FOUND, f"Did not find signage point or EOS {partial.payload.sp_hash}, {response}"
+            if response is None or response["reverted"]:
+                return error_dict(
+                    PoolErrorCode.NOT_FOUND, f"Did not find signage point or EOS {partial.payload.sp_hash}, {response}"
+                )
+            node_time_received_sp = response["time_received"]
+
+            signage_point: Optional[SignagePoint] = response.get("signage_point", None)
+            end_of_sub_slot: Optional[EndOfSubSlotBundle] = response.get("eos", None)
+
+            if time_received_partial - node_time_received_sp > self.partial_time_limit:
+                return error_dict(
+                    PoolErrorCode.TOO_LATE,
+                    f"Received partial in {time_received_partial - node_time_received_sp}. "
+                    f"Make sure your proof of space lookups are fast, and network connectivity is good."
+                    f"Response must happen in less than {self.partial_time_limit} seconds. NAS or network"
+                    f" farming can be an issue",
+                )
+
+            # Validate the proof
+            if signage_point is not None:
+                challenge_hash: bytes32 = signage_point.cc_vdf.challenge
+            else:
+                challenge_hash = end_of_sub_slot.challenge_chain.get_hash()
+
+            quality_string: Optional[bytes32] = partial.payload.proof_of_space.verify_and_get_quality_string(
+                self.constants, challenge_hash, partial.payload.sp_hash
             )
-        node_time_received_sp = response["time_received"]
-
-        signage_point: Optional[SignagePoint] = response.get("signage_point", None)
-        end_of_sub_slot: Optional[EndOfSubSlotBundle] = response.get("eos", None)
-
-        if time_received_partial - node_time_received_sp > self.partial_time_limit:
-            return error_dict(
-                PoolErrorCode.TOO_LATE,
-                f"Received partial in {time_received_partial - node_time_received_sp}. "
-                f"Make sure your proof of space lookups are fast, and network connectivity is good."
-                f"Response must happen in less than {self.partial_time_limit} seconds. NAS or network"
-                f" farming can be an issue",
-            )
-
-        # Validate the proof
-        if signage_point is not None:
-            challenge_hash: bytes32 = signage_point.cc_vdf.challenge
-        else:
-            challenge_hash = end_of_sub_slot.challenge_chain.get_hash()
-
-        quality_string: Optional[bytes32] = partial.payload.proof_of_space.verify_and_get_quality_string(
-            self.constants, challenge_hash, partial.payload.sp_hash
-        )
-        if quality_string is None:
-            return error_dict(PoolErrorCode.INVALID_PROOF, f"Invalid proof of space {partial.payload.sp_hash}")
+            if quality_string is None:
+                return error_dict(PoolErrorCode.INVALID_PROOF, f"Invalid proof of space {partial.payload.sp_hash}")
 
         current_difficulty = farmer_record.difficulty
-        required_iters: uint64 = calculate_iterations_quality(
-            self.constants.DIFFICULTY_CONSTANT_FACTOR,
-            quality_string,
-            partial.payload.proof_of_space.size,
-            current_difficulty,
-            partial.payload.sp_hash,
-        )
-
-        if required_iters >= self.iters_limit:
-            return error_dict(
-                PoolErrorCode.PROOF_NOT_GOOD_ENOUGH,
-                f"Proof of space has required iters {required_iters}, too high for difficulty " f"{current_difficulty}",
+        if self.dev_mode:
+            required_iters: uint64 = calculate_iterations_quality(
+                self.constants.DIFFICULTY_CONSTANT_FACTOR,
+                quality_string,
+                partial.payload.proof_of_space.size,
+                current_difficulty,
+                partial.payload.sp_hash,
             )
+
+            if required_iters >= self.iters_limit:
+                return error_dict(
+                    PoolErrorCode.PROOF_NOT_GOOD_ENOUGH,
+                    f"Proof of space has required iters {required_iters}, too high for difficulty " f"{current_difficulty}",
+                )
 
         await self.pending_point_partials.put((partial, time_received_partial, current_difficulty))
 

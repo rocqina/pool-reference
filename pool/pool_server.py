@@ -72,6 +72,7 @@ class PoolServer:
         self.pool_config = pool_config
         self.host = pool_config["server"]["server_host"]
         self.port = int(pool_config["server"]["server_port"])
+        self.dev_mode = pool_config["dev_mode"]
 
     async def start(self):
         await self.pool.start()
@@ -213,13 +214,14 @@ class PoolServer:
         partial: PostPartialRequest = PostPartialRequest.from_json_dict(request)
 
         self.pool.log.info(f"post_partial launcher_id: {partial.payload.launcher_id.hex()}")
-        authentication_token_error = check_authentication_token(
-            partial.payload.launcher_id,
-            partial.payload.authentication_token,
-            self.pool.authentication_token_timeout,
-        )
-        if authentication_token_error is not None:
-            return authentication_token_error
+        if self.dev_mode:
+            authentication_token_error = check_authentication_token(
+                partial.payload.launcher_id,
+                partial.payload.authentication_token,
+                self.pool.authentication_token_timeout,
+            )
+            if authentication_token_error is not None:
+                return authentication_token_error
 
         farmer_record: Optional[FarmerRecord] = await self.pool.store.get_farmer_record(partial.payload.launcher_id)
         if farmer_record is None:
