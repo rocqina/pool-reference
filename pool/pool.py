@@ -344,7 +344,9 @@ class Pool:
         else:
             ret: List[Tuple[uint64, uint64]] = [(uint64(timestamp), uint64(difficulty)) for timestamp, difficulty in
                                                 self.partial_map.get(launcher_id)]
-            return ret[:count]
+
+            res = ret[0 - count:]
+            return res[::-1]
 
     async def add_farmer(self, request: PostFarmerRequest, metadata: RequestMetadata) -> Dict:
         async with self.store.lock:

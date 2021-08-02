@@ -33,7 +33,8 @@ def get_recent_partials(launcher_id: bytes32, count: int) -> List[Tuple[uint64, 
     else:
         ret: List[Tuple[uint64, uint64]] = [(uint64(timestamp), uint64(difficulty)) for timestamp, difficulty in
                                             partial_map.get(launcher_id)]
-        return ret[:count]
+        reverse_res = ret[0 - count:]
+        return reverse_res[::-1]
 
 
 class TestPartialsMap(unittest.TestCase):
@@ -70,12 +71,12 @@ class TestPartialsMap(unittest.TestCase):
         current_time = uint64(time.time())
         launcher_id = bytes.fromhex("e090d5fd3ef9067b1002f85ff8922469bc788b8cb09d32eac385d8bc57741777")
         for i in range(num_partials):
-            add_partial(launcher_id, uint64(current_time - (i) * 380), 20)
+            add_partial(launcher_id, uint64(current_time + (i) * 380), 20)
 
         partials = get_recent_partials(launcher_id, num_partials)
         assert get_new_difficulty(partials, num_partials, time_target, 20, current_time, 1) == 15
 
-    def test_json(self):
+    def test_simulate_partial(self):
         d = {
             'payload': {
                 'launcher_id': '0xe090d5fd3ef9067b1002f85ff8922469bc788b8cb09d32eac385d8bc57741777',
