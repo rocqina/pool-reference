@@ -327,13 +327,13 @@ class Pool:
             if len(partial_list) > self.number_of_partials_target:
                 partial_list.pop(0)
 
-    def get_recent_partials(self, launcher_id: bytes32) -> List[Tuple[uint64, uint64]]:
+    def get_recent_partials(self, launcher_id: bytes32, count: int) -> List[Tuple[uint64, uint64]]:
         if self.partial_map.get(launcher_id) is None:
             return []
         else:
             ret: List[Tuple[uint64, uint64]] = [(uint64(timestamp), uint64(difficulty)) for timestamp, difficulty in
                                                 self.partial_map.get(launcher_id)]
-            return ret
+            return ret[:count]
 
     async def add_farmer(self, request: PostFarmerRequest, metadata: RequestMetadata) -> Dict:
         async with self.store.lock:
@@ -695,10 +695,12 @@ class Pool:
                 )
                 """
                 recent_partials = self.get_recent_partials(
-                    partial.payload.launcher_id
+                    partial.payload.launcher_id, self.number_of_partials_target
                 )
 
                 # Only update the difficulty if we meet certain conditions
+                self.log.info(f"get_new_difficulty number_of_partials_target:{int(self.number_of_partials_target)}"
+                              f" num_recent_partials: {len(recent_partials)} time_received_partial:{time_received_partial}")
                 new_difficulty: uint64 = self.difficulty_function(
                     recent_partials,
                     int(self.number_of_partials_target),
@@ -708,6 +710,7 @@ class Pool:
                     self.min_difficulty,
                 )
 
+                self.log.info(f"post_partials new_difficulty:{new_difficulty} current_difficulty:{current_difficulty}")
                 if current_difficulty != new_difficulty:
                     """
                     msg = FarmerMsg()
