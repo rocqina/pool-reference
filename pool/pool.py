@@ -182,6 +182,10 @@ class Pool:
         self.wallet_rpc_client: Optional[WalletRpcClient] = None
         self.wallet_rpc_port = pool_config["wallet_rpc_port"]
 
+        # 模拟测试post_partials
+        if self.dev_mode:
+            self.simulate_partials_loop_task: Optional[asyncio.Task] = None
+
     async def start(self):
         await self.store.connect()
         self.pending_point_partials = asyncio.Queue()
@@ -205,12 +209,17 @@ class Pool:
         self.get_peak_loop_task = asyncio.create_task(self.get_peak_loop())
 
         self.pending_payments = asyncio.Queue()
+        if self.dev_mode:
+            self.simulate_partials_loop_task = asyncio.create_task(self.simulate_partials_loop())
 
     async def stop(self):
         if self.confirm_partials_loop_task is not None:
             self.confirm_partials_loop_task.cancel()
         if self.get_peak_loop_task is not None:
             self.get_peak_loop_task.cancel()
+        if self.dev_mode:
+            if self.simulate_partials_loop_task is not None:
+                self.simulate_partials_loop_task.cancel()
 
         self.wallet_rpc_client.close()
         await self.wallet_rpc_client.await_closed()
@@ -738,3 +747,56 @@ class Pool:
         self.log.info("produceShareMsg msg:%s", msg)
         self.kafka_producer.send(self.share_topic, msg)
 
+    async def simulate_partials_loop(self):
+        """
+            模拟假的用户提交partials
+        """
+
+        while True:
+            try:
+                # TODO(pool): add rate limiting
+                start_time = time.time()
+                data = {
+                    'payload': {
+                        'launcher_id': '0xe090d5fd3ef9067b1002f85ff8922469bc788b8cb09d32eac385d8bc57741888',
+                        'authentication_token': 5426297,
+                        'proof_of_space': {
+                            'challenge': '0x592c9406169f7844260cc722ee3905efda515284c3b03d4927d70f09f4349b29',
+                            'pool_public_key': None,
+                            'pool_contract_puzzle_hash': '0x486494c9357b384c8aef24e486b2e93113ce7234a8c445ce4e217a68ce049ae6',
+                            'plot_public_key': '0x91c9863fde7544d604d37f41f05ad790148f331267a34f5a739e0372855003edf30c8bc70ae0d3a0a1ab3a3d0e6552c7',
+                            'size': 32,
+                            'proof': '0x4d11ee0d717a0eac443a31e827a6114393c2103cfd2681783b8ae66cd08c2e830137356649c55d0c0f1ff46017e24982de0dc42c115b1b495035a4f93fcd619fb7c609f01269d912c3d1ceeea85966c24842f8835f47dc23f1c54ab55855c33bcbe7d1713a0aa08bf2e80512f8bffceed3caf852303cff00d6e77c2e23b57acf21e2fe627282e532dc000aee4b99e65699b4acfad1bc2c5721d7a3c4573b6a2b3fef20438c5802756f4b5bff9ae554fd2f7eb6c7a2edad4260206c43aedd6124ccf187e371d7c155a3dc507d6dd60c6db99b401dcf908f1f9846c4d3b12d5b28fe950bfe0a61e76fc7692f02d93c879af7ab8772a7957baf024467ef7a539096'
+                        },
+                        'sp_hash': '0x16ed0a19832f25c494049d34286e574c1f8e4d5c75a57367c3d29adfe92321e5',
+                        'end_of_sub_slot': False,
+                        'harvester_id': '0x3d295ae210482f107fb50c96b4e1306645fafb4fce115f22fffdf5a03271b3ef'
+                    },
+                    'aggregate_signature': '0x87caff94d8f2d5bb9fa21d13034cb54285ef57e7901c2c23f702373011c9df10157f6b6febc4566dccfde83b4b10e1800a23e79cb465013a40901f54e94d9b349e0a747d1887d7d98706e8078f46a03426069dd24efbe188b05cf225295f3de9'
+                }
+                str_data = json.dumps(data)
+                request = json.loads(str_data)
+                partial: PostPartialRequest = PostPartialRequest.from_json_dict(request)
+
+                self.log.info(f"post_partial launcher_id: {partial.payload.launcher_id.hex()}")
+
+                farmer_record: Optional[FarmerRecord] = await self.pool.store.get_farmer_record(
+                    partial.payload.launcher_id)
+                if farmer_record is None:
+                    self.log.info(f"Farmer with launcher_id {partial.payload.launcher_id.hex()} not known.")
+                    continue
+
+                post_partial_response = await self.process_partial(partial, farmer_record, uint64(int(start_time)))
+
+                self.log.info(
+                    f"post_partial response {post_partial_response}, time: {time.time() - start_time} "
+                    f"launcher_id: {request['payload']['launcher_id']}"
+                )
+
+                # 每间隔5分钟发送一次
+                await asyncio.sleep(300)
+            except asyncio.CancelledError:
+                self.log.info("Cancelled confirm partials loop, closing")
+                return
+            except Exception as e:
+                self.log.error(f"Unexpected error: {e}")
