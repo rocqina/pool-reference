@@ -267,40 +267,41 @@ class Pool:
 
     async def check_and_confirm_partial(self, partial: PostPartialRequest, points_received: uint64) -> None:
         try:
-            # TODO(pool): these lookups to the full node are not efficient and can be cached, especially for
-            #  scaling to many users
-            if partial.payload.end_of_sub_slot:
-                response = await self.node_rpc_client.get_recent_signage_point_or_eos(None, partial.payload.sp_hash)
-                if response is None or response["reverted"]:
-                    self.log.info(f"Partial EOS reverted: {partial.payload.sp_hash}")
+            if not self.dev_mode:
+                # TODO(pool): these lookups to the full node are not efficient and can be cached, especially for
+                #  scaling to many users
+                if partial.payload.end_of_sub_slot:
+                    response = await self.node_rpc_client.get_recent_signage_point_or_eos(None, partial.payload.sp_hash)
+                    if response is None or response["reverted"]:
+                        self.log.info(f"Partial EOS reverted: {partial.payload.sp_hash}")
+                        return
+                else:
+                    response = await self.node_rpc_client.get_recent_signage_point_or_eos(partial.payload.sp_hash, None)
+                    if response is None or response["reverted"]:
+                        self.log.info(f"Partial SP reverted: {partial.payload.sp_hash}")
+                        return
+
+                # Now we know that the partial came on time, but also that the signage point / EOS is still in the
+                # blockchain. We need to check for double submissions.
+                pos_hash = partial.payload.proof_of_space.get_hash()
+                if self.recent_points_added.get(pos_hash):
+                    self.log.info(f"Double signage point submitted for proof: {partial.payload}")
                     return
-            else:
-                response = await self.node_rpc_client.get_recent_signage_point_or_eos(partial.payload.sp_hash, None)
-                if response is None or response["reverted"]:
-                    self.log.info(f"Partial SP reverted: {partial.payload.sp_hash}")
+                self.recent_points_added.put(pos_hash, uint64(1))
+
+                # Now we need to check to see that the singleton in the blockchain is still assigned to this pool
+                singleton_state_tuple: Optional[
+                    Tuple[CoinSpend, PoolState, bool]
+                ] = await self.get_and_validate_singleton_state(partial.payload.launcher_id)
+
+                if singleton_state_tuple is None:
+                    self.log.info(f"Invalid singleton {partial.payload.launcher_id}")
                     return
 
-            # Now we know that the partial came on time, but also that the signage point / EOS is still in the
-            # blockchain. We need to check for double submissions.
-            pos_hash = partial.payload.proof_of_space.get_hash()
-            if self.recent_points_added.get(pos_hash):
-                self.log.info(f"Double signage point submitted for proof: {partial.payload}")
-                return
-            self.recent_points_added.put(pos_hash, uint64(1))
-
-            # Now we need to check to see that the singleton in the blockchain is still assigned to this pool
-            singleton_state_tuple: Optional[
-                Tuple[CoinSpend, PoolState, bool]
-            ] = await self.get_and_validate_singleton_state(partial.payload.launcher_id)
-
-            if singleton_state_tuple is None:
-                self.log.info(f"Invalid singleton {partial.payload.launcher_id}")
-                return
-
-            _, _, is_member = singleton_state_tuple
-            if not is_member:
-                self.log.info(f"Singleton is not assigned to this pool")
-                return
+                _, _, is_member = singleton_state_tuple
+                if not is_member:
+                    self.log.info(f"Singleton is not assigned to this pool")
+                    return
 
             async with self.store.lock:
                 farmer_record: Optional[FarmerRecord] = await self.store.get_farmer_record(partial.payload.launcher_id)
