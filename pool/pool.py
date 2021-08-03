@@ -783,7 +783,7 @@ class Pool:
 
                 self.log.info(f"post_partial launcher_id: {partial.payload.launcher_id.hex()}")
 
-                farmer_record: Optional[FarmerRecord] = await self.pool.get_farmer_record(
+                farmer_record: Optional[FarmerRecord] = await self.store.get_farmer_record(
                     partial.payload.launcher_id)
                 if farmer_record is None:
                     self.log.info(f"Farmer with launcher_id {partial.payload.launcher_id.hex()} not known.")
