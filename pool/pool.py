@@ -718,6 +718,7 @@ class Pool:
                 self.log.info(f"get_new_difficulty number_of_partials_target:{int(self.number_of_partials_target)}"
                               f" num_recent_partials: {len(recent_partials)} time_received_partial:{time_received_partial}")
                 new_difficulty: uint64 = self.difficulty_function(
+                    partial.payload.launcher_id.hex(),
                     recent_partials,
                     int(self.number_of_partials_target),
                     int(self.time_target),
