@@ -622,7 +622,7 @@ class Pool:
         message: bytes32 = partial.payload.get_hash()
         pk1: G1Element = partial.payload.proof_of_space.plot_public_key
         pk2: G1Element = farmer_record.authentication_public_key
-        if self.dev_mode:
+        if not self.dev_mode:
             valid_sig = AugSchemeMPL.aggregate_verify([pk1, pk2], [message, message], partial.aggregate_signature)
             if not valid_sig:
                 return error_dict(
@@ -642,7 +642,7 @@ class Pool:
             else:
                 return await self.node_rpc_client.get_recent_signage_point_or_eos(partial.payload.sp_hash, None)
 
-        if self.dev_mode:
+        if not self.dev_mode:
             response = await get_signage_point_or_eos()
             if response is None:
                 # Try again after 10 seconds in case we just didn't yet receive the signage point
@@ -680,7 +680,7 @@ class Pool:
                 return error_dict(PoolErrorCode.INVALID_PROOF, f"Invalid proof of space {partial.payload.sp_hash}")
 
         current_difficulty = farmer_record.difficulty
-        if self.dev_mode:
+        if not self.dev_mode:
             required_iters: uint64 = calculate_iterations_quality(
                 self.constants.DIFFICULTY_CONSTANT_FACTOR,
                 quality_string,
@@ -783,7 +783,7 @@ class Pool:
 
                 self.log.info(f"post_partial launcher_id: {partial.payload.launcher_id.hex()}")
 
-                farmer_record: Optional[FarmerRecord] = await self.pool.store.get_farmer_record(
+                farmer_record: Optional[FarmerRecord] = await self.pool.get_farmer_record(
                     partial.payload.launcher_id)
                 if farmer_record is None:
                     self.log.info(f"Farmer with launcher_id {partial.payload.launcher_id.hex()} not known.")
