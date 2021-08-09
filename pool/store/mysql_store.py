@@ -190,7 +190,8 @@ class MysqlPoolStore(AbstractPoolStore):
 
     # 如果放到内存里则不需要
     async def get_recent_partials(self, launcher_id: bytes32, count: int) -> List[Tuple[uint64, uint64]]:
-        sql = "SELECT timestamp, difficulty from partial WHERE launcher_id=%s ORDER BY timestamp DESC LIMIT %s"
+        sql = "SELECT timestamp, difficulty from share_workers_chia WHERE launcher_id=%s ORDER BY timestamp DESC " \
+              "LIMIT %s "
         param = (launcher_id.hex(), count)
         rows = self.wrap.select(sql, param, True)
         ret: List[Tuple[uint64, uint64]] = [(uint64(timestamp), uint64(difficulty)) for timestamp, difficulty in rows]

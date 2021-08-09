@@ -172,9 +172,6 @@ class Pool:
 
         # Tasks (infinite While loops) for different purposes
         self.confirm_partials_loop_task: Optional[asyncio.Task] = None
-        self.collect_pool_rewards_loop_task: Optional[asyncio.Task] = None
-        self.create_payment_loop_task: Optional[asyncio.Task] = None
-        self.submit_payment_loop_task: Optional[asyncio.Task] = None
         self.get_peak_loop_task: Optional[asyncio.Task] = None
 
         self.node_rpc_client: Optional[FullNodeRpcClient] = None
@@ -312,7 +309,7 @@ class Pool:
 
                 if farmer_record.is_pool_member:
                     # 修改读内存
-                    self.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
+                    # self.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
 
                     # 向后台统计模块发送share
                     msg = ShareMsg()
@@ -331,9 +328,11 @@ class Pool:
     def add_partial(self, launcher_id, timestamp, points):
         val = (timestamp, points)
         if self.partial_map.get(launcher_id) is None:
+            self.log.info(f"get_new_difficulty ,add_partial : {launcher_id.hex()} is None")
             partial_list = [val]
             self.partial_map[launcher_id] = partial_list
         else:
+            self.log.info(f"get_new_difficulty ,add_partial : {launcher_id.hex()} is Exist")
             partial_list = self.partial_map[launcher_id]
             partial_list.append(val)
             if len(partial_list) > self.number_of_partials_target:
@@ -341,12 +340,14 @@ class Pool:
 
     def get_recent_partials(self, launcher_id: bytes32, count: int) -> List[Tuple[uint64, uint64]]:
         if self.partial_map.get(launcher_id) is None:
+            self.log.info(f"get_new_difficulty ,get_recent_partials: {launcher_id.hex()} is None")
             return []
         else:
             ret: List[Tuple[uint64, uint64]] = [(uint64(timestamp), uint64(difficulty)) for timestamp, difficulty in
                                                 self.partial_map.get(launcher_id)]
 
             res = ret[0 - count:]
+            self.log.info(f"get_new_difficulty , get_recent_partials: {launcher_id.hex()} is Exist")
             return res[::-1]
 
     async def add_farmer(self, request: PostFarmerRequest, metadata: RequestMetadata) -> Dict:
@@ -706,7 +707,6 @@ class Pool:
                 # Decide whether to update the difficulty
                 # 是否合理，存内存行不行，是否一定要存数据库
 
-                """
                 recent_partials = await self.store.get_recent_partials(
                     partial.payload.launcher_id, self.number_of_partials_target
                 )
@@ -714,6 +714,7 @@ class Pool:
                 recent_partials = self.get_recent_partials(
                     partial.payload.launcher_id, self.number_of_partials_target
                 )
+                """
 
                 # Only update the difficulty if we meet certain conditions
                 self.log.info(f"get_new_difficulty number_of_partials_target:{int(self.number_of_partials_target)}"
