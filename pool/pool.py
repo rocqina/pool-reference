@@ -779,27 +779,30 @@ class Pool:
                     },
                     'aggregate_signature': '0x87caff94d8f2d5bb9fa21d13034cb54285ef57e7901c2c23f702373011c9df10157f6b6febc4566dccfde83b4b10e1800a23e79cb465013a40901f54e94d9b349e0a747d1887d7d98706e8078f46a03426069dd24efbe188b05cf225295f3de9'
                 }
-                str_data = json.dumps(data)
-                request = json.loads(str_data)
-                partial: PostPartialRequest = PostPartialRequest.from_json_dict(request)
+                for i in range(100,699):
+                    launcher_id = 'e090d5fd3ef9067b1002f85ff8922469bc788b8cb09d32eac385d8bc57741' + str(i)
+                    data['payload']['launcher_id'] = launcher_id
+                    str_data = json.dumps(data)
+                    request = json.loads(str_data)
+                    partial: PostPartialRequest = PostPartialRequest.from_json_dict(request)
 
-                self.log.info(f"post_partial launcher_id: {partial.payload.launcher_id.hex()}")
+                    self.log.info(f"post_partial launcher_id: {partial.payload.launcher_id.hex()}")
 
-                farmer_record: Optional[FarmerRecord] = await self.store.get_farmer_record(
-                    partial.payload.launcher_id)
-                if farmer_record is None:
-                    self.log.info(f"Farmer with launcher_id {partial.payload.launcher_id.hex()} not known.")
-                    continue
+                    farmer_record: Optional[FarmerRecord] = await self.store.get_farmer_record(
+                        partial.payload.launcher_id)
+                    if farmer_record is None:
+                        self.log.info(f"Farmer with launcher_id {partial.payload.launcher_id.hex()} not known.")
+                        continue
 
-                post_partial_response = await self.process_partial(partial, farmer_record, uint64(int(start_time)))
+                    post_partial_response = await self.process_partial(partial, farmer_record, uint64(int(start_time)))
 
-                self.log.info(
-                    f"post_partial response {post_partial_response}, time: {time.time() - start_time} "
-                    f"launcher_id: {request['payload']['launcher_id']}"
-                )
+                    self.log.info(
+                        f"post_partial response {post_partial_response}, time: {time.time() - start_time} "
+                        f"launcher_id: {request['payload']['launcher_id']}"
+                    )
 
                 # 每间隔5分钟发送一次
-                await asyncio.sleep(300)
+                await asyncio.sleep(500)
             except asyncio.CancelledError:
                 self.log.info("Cancelled confirm partials loop, closing")
                 return
