@@ -8,3 +8,7 @@ pip3 install pymysql
 pip3 install dbutils
 pip3 install protobuf
 pip3 install kafka-python
+pip3 install redis
+
+
+protoc --python_out=./proto/ chia.proto

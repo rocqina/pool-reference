@@ -19,6 +19,7 @@ message FarmerMsg {
 
 message ShareMsg {
     required string launcherid = 1;
-    optional uint64 difficulty = 2;
-    optional sint64 timestamp = 3;
+    optional int32 userid = 2;
+    optional uint64 difficulty = 3;
+    optional sint64 timestamp = 4;
 }

@@ -8,6 +8,7 @@ from math import floor
 from typing import Dict, Optional, Set, List, Tuple, Callable
 import json
 from kafka import KafkaProducer
+import redis
 
 from blspy import AugSchemeMPL, G1Element
 from chia.consensus.block_rewards import calculate_pool_reward
@@ -54,7 +55,8 @@ from .proto.chia_pb2 import FarmerMsg, ShareMsg
 
 
 class Pool:
-    def __init__(self, config: Dict, pool_config: Dict, constants: ConsensusConstants, pool_store: Optional[AbstractPoolStore] = None,
+    def __init__(self, config: Dict, pool_config: Dict, constants: ConsensusConstants,
+                 pool_store: Optional[AbstractPoolStore] = None,
                  difficulty_function: Callable = get_new_difficulty):
         self.follow_singleton_tasks: Dict[bytes32, asyncio.Task] = {}
         self.log = logging
@@ -163,12 +165,19 @@ class Pool:
         self.kafka_server = pool_config["kafka_server"]
         self.farmer_topic = pool_config["farmer_topic"]
         self.share_topic = pool_config["share_topic"]
-        self.kafka_producer = KafkaProducer(bootstrap_servers=pool_config["kafka_server"])
+        self.kafka_server = pool_config["kafka_server"]
+        self.kafka_producer = {}
 
         self.dev_mode = pool_config["dev_mode"]
 
         #
         self.partial_map = {}
+
+        # redis
+        self.redis_host = pool_config["redis_host"]
+        self.redis_port = int(pool_config["redis_port"])
+        self.passwd = pool_config["redis_passwd"]
+        self.redis = {}
 
         # Tasks (infinite While loops) for different purposes
         self.confirm_partials_loop_task: Optional[asyncio.Task] = None
@@ -185,6 +194,13 @@ class Pool:
 
     async def start(self):
         await self.store.connect()
+
+        redis_pool = redis.ConnectionPool(host=self.redis_host, port=self.redis_port, password=self.passwd,
+                                          decode_responses=True)  # host是redis主机，需要redis服务端和客户端都起着 redis默认端口是6379
+        self.redis = redis.Redis(connection_pool=redis_pool)
+
+        self.kafka_producer = KafkaProducer(bootstrap_servers=self.kafka_server)
+
         self.pending_point_partials = asyncio.Queue()
 
         self_hostname = self.config["self_hostname"]
@@ -249,20 +265,20 @@ class Pool:
             try:
                 # The points are based on the difficulty at the time of partial submission, not at the time of
                 # confirmation
-                partial, time_received, points_received = await self.pending_point_partials.get()
+                partial, time_received, points_received, puid = await self.pending_point_partials.get()
 
                 # Wait a few minutes to check if partial is still valid in the blockchain (no reorgs)
                 await asyncio.sleep((max(0, time_received + self.partial_confirmation_delay - time.time() - 5)))
 
                 # Starts a task to check the remaining things for this partial and optionally update points
-                asyncio.create_task(self.check_and_confirm_partial(partial, points_received))
+                asyncio.create_task(self.check_and_confirm_partial(partial, points_received, puid))
             except asyncio.CancelledError:
                 self.log.info("Cancelled confirm partials loop, closing")
                 return
             except Exception as e:
                 self.log.error(f"Unexpected error: {e}")
 
-    async def check_and_confirm_partial(self, partial: PostPartialRequest, points_received: uint64) -> None:
+    async def check_and_confirm_partial(self, partial: PostPartialRequest, points_received: uint64, puid : int) -> None:
         try:
             if not self.dev_mode:
                 # TODO(pool): these lookups to the full node are not efficient and can be cached, especially for
@@ -314,11 +330,12 @@ class Pool:
                     # 向后台统计模块发送share
                     msg = ShareMsg()
                     msg.launcherid = partial.payload.launcher_id.hex()
+                    msg.userid = puid
                     msg.difficulty = points_received
                     msg.timestamp = uint64(int(time.time()))
                     self.produceShareMsg(msg.SerializeToString())
 
-                    #await self.store.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
+                    # await self.store.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
                     self.log.info(
                         f"Farmer {farmer_record.launcher_id} updated points to: " f"{farmer_record.points + points_received}")
         except Exception as e:
@@ -620,6 +637,24 @@ class Pool:
             farmer_record: FarmerRecord,
             time_received_partial: uint64,
     ) -> Dict:
+        # 检查redis中是否有launcherid对应的puid
+        """
+        redis中value的格式
+        {
+            "puid":123,
+            "timestamp": 123
+        }
+        """
+        redis_value = self.redis.get(partial.payload.launcher_id.hex())
+        if redis_value is None:
+            return error_dict(
+                PoolErrorCode.NOT_FOUND,
+                f"The launcher_id should bind okex account",
+            )
+
+        redis_res = json.loads(redis_value)
+        puid = redis_res["puid"]
+
         # Validate signatures
         message: bytes32 = partial.payload.get_hash()
         pk1: G1Element = partial.payload.proof_of_space.plot_public_key
@@ -697,7 +732,7 @@ class Pool:
                     f"Proof of space has required iters {required_iters}, too high for difficulty " f"{current_difficulty}",
                 )
 
-        await self.pending_point_partials.put((partial, time_received_partial, current_difficulty))
+        await self.pending_point_partials.put((partial, time_received_partial, current_difficulty, puid))
 
         async with self.store.lock:
             # Obtains the new record in case we just updated difficulty
@@ -779,7 +814,7 @@ class Pool:
                     },
                     'aggregate_signature': '0x87caff94d8f2d5bb9fa21d13034cb54285ef57e7901c2c23f702373011c9df10157f6b6febc4566dccfde83b4b10e1800a23e79cb465013a40901f54e94d9b349e0a747d1887d7d98706e8078f46a03426069dd24efbe188b05cf225295f3de9'
                 }
-                for i in range(100,699):
+                for i in range(100, 699):
                     launcher_id = 'e090d5fd3ef9067b1002f85ff8922469bc788b8cb09d32eac385d8bc57741' + str(i)
                     data['payload']['launcher_id'] = launcher_id
                     str_data = json.dumps(data)

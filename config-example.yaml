@@ -41,3 +41,6 @@ server:
   server_ssl_crt: config/ssl/domain/domain_srv.crt
   server_ssl_key: config/ssl/domain/domain_srv.key
 dev_mode: true
+redis_server: "127.0.0.1"
+redis_port: 6379
+redis_passwd: "1234"
