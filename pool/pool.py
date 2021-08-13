@@ -51,7 +51,7 @@ from .store.abstract import AbstractPoolStore
 from .store.sqlite_store import SqlitePoolStore
 from .record import FarmerRecord
 from .util import error_dict, RequestMetadata
-from .proto.chia_pb2 import FarmerMsg, ShareMsg
+from .proto.chia_pb2 import ShareMsg
 
 
 class Pool:
@@ -432,23 +432,6 @@ class Pool:
                 request.payload.payout_instructions,
                 True,
             )
-            """
-            msg = FarmerMsg()
-            msg.launcherid = request.payload.launcher_id.hex()
-            msg.singletonpuzzlehash = p2_singleton_puzzle_hash.hex()
-            msg.delaytime = delay_time
-            msg.delaypuzzlehash = delay_puzzle_hash.hex()
-            msg.authenticationpublickey = bytes(request.payload.authentication_public_key).hex()
-            msg.singletontip = bytes(last_spend).hex()
-            msg.singletontipstate = bytes(last_state).hex()
-            msg.points = 0
-            msg.difficulty = difficulty
-            msg.payoutinstructions = request.payload.payout_instructions
-            msg.ispoolmember = True
-            msg.timestamp = uint64(int(time.time()))  # 是不是需要int64还是直接用int
-            msg.flag = 0
-            await self.produceFarmerMsg(msg.SerializeToString())
-            """
             # 当新农民加入进来的时候，需要增加，并不频繁
             await self.store.add_farmer_record(farmer_record)
 
@@ -508,26 +491,6 @@ class Pool:
 
         async def update_farmer_later():
             await asyncio.sleep(self.farmer_update_cooldown_seconds)
-
-            """
-            # 发送给kafka
-            record = FarmerRecord.from_json_dict(farmer_dict)
-            msg = FarmerMsg()
-            msg.launcherid = record.launcher_id.hex()
-            #msg.singletonpuzzlehash = record.p2_singleton_puzzle_hash.hex()
-            #msg.delaytime = record.delay_time
-            #msg.delaypuzzlehash = record.delay_puzzle_hash.hex()
-            msg.authenticationpublickey = bytes(record.authentication_public_key).hex()
-            #msg.singletontip = bytes(record.singleton_tip).hex()
-            #msg.singletontipstate = bytes(record.singleton_tip_state).hex()
-            #msg.points = record.points
-            msg.difficulty = record.difficulty
-            msg.payoutinstructions = record.payout_instructions
-            #msg.ispoolmember = record.is_pool_member
-            msg.timestamp = uint64(int(time.time()))  # 是不是需要int64还是直接用int
-            msg.flag = 1
-            await self.produceFarmerMsg(msg.SerializeToString())
-            """
 
             # 没有用户提交partial，只是更改基本信息
             await self.store.add_farmer_record(FarmerRecord.from_json_dict(farmer_dict))
@@ -614,16 +577,6 @@ class Pool:
             # switch back.
             self.log.info(f"Updating singleton state for {launcher_id}")
 
-            """
-            msg = FarmerMsg()
-            msg.launcherid = launcher_id.hex()
-            msg.singletontip = bytes(buried_singleton_tip).hex()
-            msg.singletontipstate = bytes(buried_singleton_tip_state).hex()
-            msg.ispoolmember = is_pool_member
-            msg.timestamp = uint64(int(time.time()))  # 是不是需要int64还是直接用int
-            msg.flag = 2
-            await self.produceFarmerMsg(msg.SerializeToString())
-            """
             # 只是更新基本信息，改动的频率非常不频繁
             await self.store.update_singleton(
                 launcher_id, buried_singleton_tip, buried_singleton_tip_state, is_pool_member
@@ -647,6 +600,7 @@ class Pool:
         """
         redis_value = self.redis.get(partial.payload.launcher_id.hex())
         if redis_value is None:
+            self.log.error(f"can not find launcher_id:{partial.payload.launcher_id.hex()} redis")
             return error_dict(
                 PoolErrorCode.NOT_FOUND,
                 f"The launcher_id should bind okex account",
@@ -766,14 +720,6 @@ class Pool:
 
                 self.log.info(f"post_partials new_difficulty:{new_difficulty} current_difficulty:{current_difficulty}")
                 if current_difficulty != new_difficulty:
-                    """
-                    msg = FarmerMsg()
-                    msg.launcherid = partial.payload.launcher_id.hex()
-                    msg.difficulty = new_difficulty
-                    msg.timestamp = uint64(int(time.time()))
-                    msg.flag = 3
-                    await self.produceFarmerMsg(msg.SerializeToString())
-                    """
                     # 更新难度，更新的并不频繁
                     await self.store.update_difficulty(partial.payload.launcher_id, new_difficulty)
                     current_difficulty = new_difficulty
@@ -784,7 +730,6 @@ class Pool:
         self.kafka_producer.send(self.farmer_topic, msg)
 
     def produceShareMsg(self, msg):
-        self.log.info("produceShareMsg msg:%s", msg)
         self.kafka_producer.send(self.share_topic, msg)
 
     async def simulate_partials_loop(self):
@@ -843,3 +788,4 @@ class Pool:
                 return
             except Exception as e:
                 self.log.error(f"Unexpected error: {e}")
+                await asyncio.sleep(10)

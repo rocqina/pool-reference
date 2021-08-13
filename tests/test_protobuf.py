@@ -30,6 +30,9 @@ class TestProtobuf(unittest.TestCase):
         new_msg = FarmerMsg()
         new_msg.ParseFromString(str)
         print(new_msg.difficulty)
+        ts = time.time()
+        print(int(ts))
+        print(int(ts))
 
 
 if __name__ == "__main__":

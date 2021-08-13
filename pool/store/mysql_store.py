@@ -77,7 +77,6 @@ class MysqlPoolStore(AbstractPoolStore):
             int(farmer_record.is_pool_member),
             now
         )
-        log.info(sql)
         count = self.wrap.insertOne(sql, param)
         return count
 
@@ -90,11 +89,10 @@ class MysqlPoolStore(AbstractPoolStore):
     async def get_farmer_record(self, launcher_id: bytes32) -> Optional[FarmerRecord]:
         sql = "SELECT * from MINING_WORKERS_CHIA where launcher_id=%s"
         param = (launcher_id.hex(),)
-        res = self.wrap.select(sql, param, True)
+        res = self.wrap.select(sql, param, False)
         if not res:
             log.debug("can not find any record for launcher_id:%s", launcher_id.hex())
             return None
-        log.info(res)
         return self._row_to_farmer_record(res[0])
 
     # 更新难度，暂时放到这，更新的不会太频繁
@@ -194,5 +192,8 @@ class MysqlPoolStore(AbstractPoolStore):
               "LIMIT %s "
         param = (launcher_id.hex(), count)
         rows = self.wrap.select(sql, param, True)
-        ret: List[Tuple[uint64, uint64]] = [(uint64(timestamp), uint64(difficulty)) for timestamp, difficulty in rows]
+        ret: List[Tuple[uint64, uint64]] = []
+        for row in rows:
+            ret.append((uint64(row['timestamp']), uint64(row['difficulty'])))
+        #ret: List[Tuple[uint64, uint64]] = [(uint64(timestamp), uint64(difficulty)) for timestamp, difficulty in rows]
         return ret
