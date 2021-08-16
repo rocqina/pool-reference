@@ -148,9 +148,6 @@ class Pool:
         # faster.
         self.max_additions_per_transaction = pool_config["max_additions_per_transaction"]
 
-        # This is the list of payments that we have not sent yet, to farmers
-        self.pending_payments: Optional[asyncio.Queue] = None
-
         # Keeps track of the latest state of our node
         self.blockchain_state = {"peak": None}
 
@@ -221,7 +218,6 @@ class Pool:
         self.confirm_partials_loop_task = asyncio.create_task(self.confirm_partials_loop())
         self.get_peak_loop_task = asyncio.create_task(self.get_peak_loop())
 
-        self.pending_payments = asyncio.Queue()
         if self.dev_mode:
             self.simulate_partials_loop_task = asyncio.create_task(self.simulate_partials_loop())
 
