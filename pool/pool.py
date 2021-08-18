@@ -4,14 +4,12 @@ import pathlib
 import time
 import traceback
 from asyncio import Task
-from math import floor
 from typing import Dict, Optional, Set, List, Tuple, Callable
 import json
 from kafka import KafkaProducer
 import redis
 
 from blspy import AugSchemeMPL, G1Element
-from chia.consensus.block_rewards import calculate_pool_reward
 from chia.pools.pool_wallet_info import PoolState, PoolSingletonState
 from chia.protocols.pool_protocol import (
     PoolErrorCode,
@@ -24,7 +22,6 @@ from chia.protocols.pool_protocol import (
     POOL_PROTOCOL_VERSION,
 )
 from chia.rpc.wallet_rpc_client import WalletRpcClient
-from chia.types.blockchain_format.coin import Coin
 from chia.types.coin_record import CoinRecord
 from chia.types.coin_spend import CoinSpend
 from chia.util.bech32m import decode_puzzle_hash
@@ -39,7 +36,6 @@ from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.consensus.pot_iterations import calculate_iterations_quality
 from chia.util.lru_cache import LRUCache
 from chia.util.chia_logging import initialize_logging
-from chia.wallet.transaction_record import TransactionRecord
 from chia.pools.pool_puzzles import (
     get_delayed_puz_info_from_launcher_spend,
     launcher_id_to_p2_puzzle_hash,
@@ -47,8 +43,7 @@ from chia.pools.pool_puzzles import (
 
 from .difficulty_adjustment import get_new_difficulty
 from .singleton import create_absorb_transaction, get_singleton_state, get_coin_spend, get_farmed_height
-from .store.abstract import AbstractPoolStore
-from .store.sqlite_store import SqlitePoolStore
+from .store.mysql_store import MysqlPoolStore
 from .record import FarmerRecord
 from .util import error_dict, RequestMetadata
 from .proto.chia_pb2 import ShareMsg
@@ -56,7 +51,7 @@ from .proto.chia_pb2 import ShareMsg
 
 class Pool:
     def __init__(self, config: Dict, pool_config: Dict, constants: ConsensusConstants,
-                 pool_store: Optional[AbstractPoolStore] = None,
+                 pool_store: Optional[MysqlPoolStore],
                  difficulty_function: Callable = get_new_difficulty):
         self.follow_singleton_tasks: Dict[bytes32, asyncio.Task] = {}
         self.log = logging
@@ -75,7 +70,7 @@ class Pool:
         self.config = config
         self.constants = constants
 
-        self.store: AbstractPoolStore = pool_store or SqlitePoolStore()
+        self.store: MysqlPoolStore = pool_store
 
         self.pool_fee = pool_config["pool_fee"]
 

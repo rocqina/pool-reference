@@ -16,6 +16,17 @@ protoc --python_out=./proto/ chia.proto
 
 
 
+安装python3依赖包
+yum -y install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel libffi-devel
+
+Python 3.8.10
+wget https://www.python.org/ftp/python/3.8.10/Python-3.8.10.tgz
+cd Python-3.8.10
+./configure --prefix=/usr/local/python3
+make && make install
+ln -s /usr/local/python3/bin/python3.8 /usr/bin/python3
+ln -s /usr/local/python3/bin/pip3.8 /usr/bin/pip3
+
 pool sql
 /*
 Navicat MySQL Data Transfer

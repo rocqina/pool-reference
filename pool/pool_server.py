@@ -33,7 +33,6 @@ from chia.util.config import load_config
 
 from .record import FarmerRecord
 from .pool import Pool
-from .store.abstract import AbstractPoolStore
 from .util import error_response, RequestMetadata
 from .store.mysql_store import MysqlPoolStore
 
@@ -61,12 +60,14 @@ def get_ssl_context(config):
 
 
 class PoolServer:
-    def __init__(self, config: Dict, constants: ConsensusConstants, pool_store: Optional[AbstractPoolStore] = None):
+    def __init__(self, config: Dict, constants: ConsensusConstants):
         # We load our configurations from here
         with open(os.getcwd() + "/config.yaml") as f:
             pool_config: Dict = yaml.safe_load(f)
 
         self.log = logging.getLogger(__name__)
+        pool_store: MysqlPoolStore = MysqlPoolStore(pool_config.db_host, pool_config.db_port, pool_config.db_user,
+                                                    pool_config.db_passwd, pool_config.db_name)
         self.pool = Pool(config, pool_config, constants, pool_store)
 
         self.pool_config = pool_config
@@ -288,13 +289,13 @@ server: Optional[PoolServer] = None
 runner: Optional[aiohttp.web.BaseRunner] = None
 
 
-async def start_pool_server(pool_store: Optional[AbstractPoolStore] = None):
+async def start_pool_server():
     global server
     global runner
     config = load_config(DEFAULT_ROOT_PATH, "config.yaml")
     overrides = config["network_overrides"]["constants"][config["selected_network"]]
     constants: ConsensusConstants = DEFAULT_CONSTANTS.replace_str_to_bytes(**overrides)
-    server = PoolServer(config, constants, pool_store)
+    server = PoolServer(config, constants)
     await server.start()
 
     app = web.Application()
@@ -331,7 +332,7 @@ async def stop():
 
 def main():
     try:
-        asyncio.run(start_pool_server(MysqlPoolStore()))
+        asyncio.run(start_pool_server())
     except KeyboardInterrupt:
         asyncio.run(stop())
 

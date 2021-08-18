@@ -8,11 +8,10 @@ from chia.types.blockchain_format.sized_bytes import bytes32
 from chia.types.coin_spend import CoinSpend
 from chia.util.ints import uint64
 
-from .abstract import AbstractPoolStore
 from ..record import FarmerRecord
 
 
-class SqlitePoolStore(AbstractPoolStore):
+class SqlitePoolStore():
     """
     Pool store based on SQLite.
     """

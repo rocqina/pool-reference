@@ -8,7 +8,13 @@ class MysqlPool:
 
     __pool = None
 
-    def __init__(self):
+    def __init__(self, host, port, user, passwd, name):
+        self.host = host
+        self.port = port
+        self.user = user
+        self.passwd = passwd
+        self.name = self.name
+
         # 触发创建连接池
         self.conn = self.__getConn()
         self.cursor = self.conn.cursor()
@@ -25,11 +31,11 @@ class MysqlPool:
                 blocking=config.DB_BLOCKING,
                 maxusage=config.DB_MAX_USAGE,
                 setsession=config.DB_SET_SESSION,
-                host=config.DB_HOST,
-                port=config.DB_PORT,
-                user=config.DB_USER,
-                passwd=config.DB_PASSWD,
-                db=config.DB_NAME,
+                host=self.host,
+                port=self.port,
+                user=self.user,
+                passwd=self.passwd,
+                db=self.name,
                 use_unicode=False,
                 charset=config.DB_CHARSET,
                 cursorclass=DictCursor
@@ -48,5 +54,5 @@ class MysqlPool:
         return cursor, conn
 
 
-def get_mysql_connection():
-    return MysqlPool()
+def get_mysql_connection(host, port, user, passwd, name):
+    return MysqlPool(host, port, user, passwd, name)

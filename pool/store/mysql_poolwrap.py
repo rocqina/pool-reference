@@ -3,8 +3,8 @@ from .mysql_pool import get_mysql_connection
 
 class MysqlPoolWrap(object):
 
-    def __init__(self):
-        self.db = get_mysql_connection()
+    def __init__(self, host, port, user, passwd, name):
+        self.db = get_mysql_connection(host, port, user, passwd, name)
 
     # 单例
     def __new__(cls, *args, **kwargs):
