@@ -7,7 +7,7 @@ class MysqlPoolWrap(object):
         self.db = get_mysql_connection(host, port, user, passwd, name)
 
     # 单例
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, host, port, user, passwd, name, *args, **kwargs):
         if not hasattr(cls, 'inst'):
             cls.inst = super(MysqlPoolWrap, cls).__new__(cls, *args, **kwargs)
         return cls.inst

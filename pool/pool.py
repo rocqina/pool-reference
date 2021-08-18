@@ -185,8 +185,6 @@ class Pool:
             self.simulate_partials_loop_task: Optional[asyncio.Task] = None
 
     async def start(self):
-        await self.store.connect()
-
         redis_pool = redis.ConnectionPool(host=self.redis_host, port=self.redis_port, password=self.passwd,
                                           decode_responses=True)  # host是redis主机，需要redis服务端和客户端都起着 redis默认端口是6379
         self.redis = redis.Redis(connection_pool=redis_pool)

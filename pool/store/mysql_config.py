@@ -1,12 +1,5 @@
 import pymysql
 
-# mysql基本信息
-DB_HOST = "127.0.0.1"
-DB_PORT = 3306
-DB_NAME = "stats"
-DB_USER = "root"
-DB_PASSWD = "1234"
-
 # mysql参数信息
 # 数据库连接编码
 DB_CHARSET = "utf8"

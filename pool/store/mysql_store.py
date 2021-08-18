@@ -1,5 +1,6 @@
 from typing import Optional, Set, List, Tuple, Dict
 import logging, datetime
+import asyncio
 
 from blspy import G1Element
 from chia.pools.pool_wallet_info import PoolState
@@ -18,6 +19,7 @@ class MysqlPoolStore():
     """pool store for mysql"""
 
     def __init__(self, host, port, user, passwd, name):
+        self.lock = asyncio.Lock()
         self.wrap = MysqlPoolWrap(host, port, user, passwd, name)
 
     @staticmethod

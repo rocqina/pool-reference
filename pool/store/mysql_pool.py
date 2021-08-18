@@ -13,7 +13,7 @@ class MysqlPool:
         self.port = port
         self.user = user
         self.passwd = passwd
-        self.name = self.name
+        self.name = name
 
         # 触发创建连接池
         self.conn = self.__getConn()

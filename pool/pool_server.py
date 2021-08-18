@@ -66,8 +66,8 @@ class PoolServer:
             pool_config: Dict = yaml.safe_load(f)
 
         self.log = logging.getLogger(__name__)
-        pool_store: MysqlPoolStore = MysqlPoolStore(pool_config.db_host, pool_config.db_port, pool_config.db_user,
-                                                    pool_config.db_passwd, pool_config.db_name)
+        pool_store: MysqlPoolStore = MysqlPoolStore(pool_config["db_host"], pool_config["db_port"], pool_config["db_user"],
+                                                    pool_config["db_passwd"], pool_config["db_name"])
         self.pool = Pool(config, pool_config, constants, pool_store)
 
         self.pool_config = pool_config
