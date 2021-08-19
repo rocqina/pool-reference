@@ -270,17 +270,10 @@ class PoolServer:
 
     async def login_response(self, launcher_id):
         response = {}
-        """
         record: Optional[FarmerRecord] = await self.pool.store.get_farmer_record(launcher_id)
         if record is not None:
             response["farmer_record"] = record
             recent_partials = await self.pool.store.get_recent_partials(launcher_id, 20)
-            response["recent_partials"] = recent_partials
-        """
-        record: Optional[FarmerRecord] = await self.pool.store.get_farmer_record(launcher_id)
-        if record is not None:
-            response["farmer_record"] = record
-            recent_partials = await self.pool.get_recent_partials(launcher_id, 20)
             response["recent_partials"] = recent_partials
         return obj_to_response(response)
 
