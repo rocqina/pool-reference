@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto2',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\nchia.proto\x12\tsharebase\"U\n\x08ShareMsg\x12\x12\n\nlauncherid\x18\x01 \x02(\t\x12\x0e\n\x06userid\x18\x02 \x01(\x05\x12\x12\n\ndifficulty\x18\x03 \x01(\x04\x12\x11\n\ttimestamp\x18\x04 \x01(\x12'
+  serialized_pb=b'\n\nchia.proto\x12\tsharebase\"f\n\x08ShareMsg\x12\x12\n\nlauncherid\x18\x01 \x02(\t\x12\x0e\n\x06userid\x18\x02 \x01(\x05\x12\x12\n\ndifficulty\x18\x03 \x01(\x04\x12\x11\n\ttimestamp\x18\x04 \x01(\x12\x12\x0f\n\x07poshash\x18\x05 \x01(\t'
 )
 
 
@@ -61,6 +61,13 @@ _SHAREMSG = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='poshash', full_name='sharebase.ShareMsg.poshash', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -74,7 +81,7 @@ _SHAREMSG = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=25,
-  serialized_end=110,
+  serialized_end=127,
 )
 
 DESCRIPTOR.message_types_by_name['ShareMsg'] = _SHAREMSG
