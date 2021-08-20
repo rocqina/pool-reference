@@ -21,7 +21,6 @@ from chia.protocols.pool_protocol import (
     PutFarmerResponse,
     POOL_PROTOCOL_VERSION,
 )
-from chia.rpc.wallet_rpc_client import WalletRpcClient
 from chia.types.coin_record import CoinRecord
 from chia.types.coin_spend import CoinSpend
 from chia.util.bech32m import decode_puzzle_hash
@@ -102,14 +101,6 @@ class Pool:
         # Using 2164248527
         self.default_target_puzzle_hash: bytes32 = bytes32(decode_puzzle_hash(pool_config["default_target_address"]))
 
-        # The pool fees will be sent to this address. This MUST be on a different key than the target_puzzle_hash,
-        # otherwise, the fees will be sent to the users. Using 690783650
-        self.pool_fee_puzzle_hash: bytes32 = bytes32(decode_puzzle_hash(pool_config["pool_fee_address"]))
-
-        # This is the wallet fingerprint and ID for the wallet spending the funds from `self.default_target_puzzle_hash`
-        self.wallet_fingerprint = pool_config["wallet_fingerprint"]
-        self.wallet_id = pool_config["wallet_id"]
-
         # We need to check for slow farmers. If farmers cannot submit proofs in time, they won't be able to win
         # any rewards either. This number can be tweaked to be more or less strict. More strict ensures everyone
         # gets high rewards, but it might cause some of the slower farmers to not be able to participate in the pool.
@@ -127,21 +118,8 @@ class Pool:
         # 因为pool reward收集不在这里做，所以这个变量不需要了
         # self.scan_p2_singleton_puzzle_hashes: Set[bytes32] = set()
 
-        # Don't scan anything before this height, for efficiency (for example pool start date)
-        self.scan_start_height: uint32 = uint32(pool_config["scan_start_height"])
-
-        # Interval for scanning and collecting the pool rewards
-        self.collect_pool_rewards_interval = pool_config["collect_pool_rewards_interval"]
-
         # After this many confirmations, a transaction is considered final and irreversible
         self.confirmation_security_threshold = pool_config["confirmation_security_threshold"]
-
-        # Interval for making payout transactions to farmers
-        self.payment_interval = pool_config["payment_interval"]
-
-        # We will not make transactions with more targets than this, to ensure our transaction gets into the blockchain
-        # faster.
-        self.max_additions_per_transaction = pool_config["max_additions_per_transaction"]
 
         # Keeps track of the latest state of our node
         self.blockchain_state = {"peak": None}
@@ -176,9 +154,8 @@ class Pool:
         self.get_peak_loop_task: Optional[asyncio.Task] = None
 
         self.node_rpc_client: Optional[FullNodeRpcClient] = None
+        self.node_rpc_host = pool_config["node_rpc_host"]
         self.node_rpc_port = pool_config["node_rpc_port"]
-        self.wallet_rpc_client: Optional[WalletRpcClient] = None
-        self.wallet_rpc_port = pool_config["wallet_rpc_port"]
 
         # 模拟测试post_partials
         if self.dev_mode:
@@ -193,20 +170,10 @@ class Pool:
 
         self.pending_point_partials = asyncio.Queue()
 
-        self_hostname = self.config["self_hostname"]
         self.node_rpc_client = await FullNodeRpcClient.create(
-            self_hostname, uint16(self.node_rpc_port), DEFAULT_ROOT_PATH, self.config
-        )
-        self.wallet_rpc_client = await WalletRpcClient.create(
-            self.config["self_hostname"], uint16(self.wallet_rpc_port), DEFAULT_ROOT_PATH, self.config
+            self.node_rpc_host, uint16(self.node_rpc_port), DEFAULT_ROOT_PATH, self.config
         )
         self.blockchain_state = await self.node_rpc_client.get_blockchain_state()
-        res = await self.wallet_rpc_client.log_in_and_skip(fingerprint=self.wallet_fingerprint)
-        if not res["success"]:
-            raise ValueError(f"Error logging in: {res['error']}. Make sure your config fingerprint is correct.")
-        self.log.info(f"Logging in: {res}")
-        res = await self.wallet_rpc_client.get_wallet_balance(self.wallet_id)
-        self.log.info(f"Obtaining balance: {res}")
 
         self.confirm_partials_loop_task = asyncio.create_task(self.confirm_partials_loop())
         self.get_peak_loop_task = asyncio.create_task(self.get_peak_loop())
@@ -223,8 +190,6 @@ class Pool:
             if self.simulate_partials_loop_task is not None:
                 self.simulate_partials_loop_task.cancel()
 
-        self.wallet_rpc_client.close()
-        await self.wallet_rpc_client.await_closed()
         self.node_rpc_client.close()
         await self.node_rpc_client.await_closed()
         await self.store.connection.close()
@@ -236,7 +201,6 @@ class Pool:
         while True:
             try:
                 self.blockchain_state = await self.node_rpc_client.get_blockchain_state()
-                self.wallet_synced = await self.wallet_rpc_client.get_synced()
                 await asyncio.sleep(30)
             except asyncio.CancelledError:
                 self.log.info("Cancelled get_peak_loop, closing")
@@ -313,21 +277,18 @@ class Pool:
                 )
 
                 if farmer_record.is_pool_member:
-                    # 修改读内存
-                    # self.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
-
                     # 向后台统计模块发送share
                     msg = ShareMsg()
                     msg.launcherid = partial.payload.launcher_id.hex()
                     msg.userid = puid
                     msg.difficulty = points_received
                     msg.timestamp = uint64(int(time.time()))
+                    msg.pos_hash = pos_hash.hex()
                     self.produceShareMsg(msg.SerializeToString())
 
-                    # await self.store.add_partial(partial.payload.launcher_id, uint64(int(time.time())), points_received)
                     self.log.info(
                         f"Farmer {farmer_record.launcher_id} updated points to: " f"{farmer_record.points + points_received}"
-                        f", puid:{puid}")
+                        f", puid:{puid}, pos_hash:{pos_hash.hex()}")
         except Exception as e:
             error_stack = traceback.format_exc()
             self.log.error(f"Exception in confirming partial: {e} {error_stack}")
