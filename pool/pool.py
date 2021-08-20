@@ -283,7 +283,7 @@ class Pool:
                     msg.userid = puid
                     msg.difficulty = points_received
                     msg.timestamp = uint64(int(time.time()))
-                    msg.pos_hash = pos_hash.hex()
+                    msg.poshash = pos_hash.hex()
                     self.produceShareMsg(msg.SerializeToString())
 
                     self.log.info(
