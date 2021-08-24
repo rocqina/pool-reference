@@ -25,43 +25,43 @@ def get_new_difficulty(
     # 这有个问题，如果初始难度太高，用户一直没有提交，也不会减难度
     # If we haven't processed any partials yet, maintain the current (default) difficulty
     if len(recent_partials) == 0:
-        log.info(f"launcher_id:{launcher_id}, get_new_difficulty num of recent_partials is 0")
+        # log.info(f"launcher_id:{launcher_id}, get_new_difficulty num of recent_partials is 0")
         return current_difficulty
 
     # If we recently updated difficulty, don't update again
     if any(difficulty != current_difficulty for timestamp, difficulty in recent_partials):
-        log.info(f"launcher_id:{launcher_id}, get_new_difficulty difficulty != current_difficulty, current_difficulty: {current_difficulty}")
+        # log.info(f"launcher_id:{launcher_id}, get_new_difficulty difficulty != current_difficulty, current_difficulty: {current_difficulty}")
         return current_difficulty
 
     # Lower the difficulty if we are really slow since our last partial
     last_timestamp = recent_partials[0][0]
     if current_time - last_timestamp > 3 * 3600:
-        log.info(f"launcher_id:{launcher_id}, get_new_difficulty current_time - last_timestamp is {current_time - last_timestamp} > 3 * 3600")
+        # log.info(f"launcher_id:{launcher_id}, get_new_difficulty current_time - last_timestamp is {current_time - last_timestamp} > 3 * 3600")
         return max(min_difficulty, current_difficulty // 5)
 
     if current_time - last_timestamp > 3600:
-        log.info(f"launcher_id:{launcher_id}, get_new_difficulty current_time - last_timestamp is {current_time - last_timestamp} > 3600")
+        # log.info(f"launcher_id:{launcher_id}, get_new_difficulty current_time - last_timestamp is {current_time - last_timestamp} > 3600")
         return max(min_difficulty, uint64(int(current_difficulty // 1.5)))
 
     # If we don't have enough partials at this difficulty, don't update yet
-    log.info(f"launcher_id:{launcher_id}, get_new_difficulty recent_partials[0][0] is {recent_partials[0][0]},  recent_partials[-1][0] is {recent_partials[-1][0]}")
+    # log.info(f"launcher_id:{launcher_id}, get_new_difficulty recent_partials[0][0] is {recent_partials[0][0]},  recent_partials[-1][0] is {recent_partials[-1][0]}")
     time_taken = uint64(recent_partials[0][0] - recent_partials[-1][0])
 
     # If we don't have enough partials at this difficulty and time between last and
     # 1st partials is below target time, don't update yet
     if len(recent_partials) < number_of_partials_target and time_taken < time_target:
-        log.info(f"launcher_id:{launcher_id}, get_new_difficulty len(recent_partials):{len(recent_partials)} number_of_partials_target:{number_of_partials_target}"
-                 f" time_taken: {time_taken} time_target:{time_target}")
+        # log.info(f"launcher_id:{launcher_id}, get_new_difficulty len(recent_partials):{len(recent_partials)} number_of_partials_target:{number_of_partials_target}"
+        #         f" time_taken: {time_taken} time_target:{time_target}")
         return current_difficulty
 
     # Adjust time_taken if number of partials didn't reach number_of_partials_target
     if len(recent_partials) < number_of_partials_target:
-        log.info(f"launcher_id:{launcher_id}, get_new_difficulty len(recent_partials):{len(recent_partials)} number_of_partials_target:{number_of_partials_target}")
+        # log.info(f"launcher_id:{launcher_id}, get_new_difficulty len(recent_partials):{len(recent_partials)} number_of_partials_target:{number_of_partials_target}")
         time_taken = time_taken * number_of_partials_target / len(recent_partials)
 
     # Finally, this is the standard case of normal farming and slow (or no) growth, adjust to the new difficulty
     time_taken = uint64(recent_partials[0][0] - recent_partials[-1][0])
     new_difficulty = uint64(int(current_difficulty * time_target / time_taken))
-    log.info(f"launcher_id:{launcher_id}, get_new_difficulty current_difficulty:{current_difficulty} new_difficulty:{new_difficulty}"
-             f" time_taken: {time_taken} time_target:{time_target}")
+    #log.info(f"launcher_id:{launcher_id}, get_new_difficulty current_difficulty:{current_difficulty} new_difficulty:{new_difficulty}"
+    #         f" time_taken: {time_taken} time_target:{time_target}")
     return max(min_difficulty, new_difficulty)

@@ -41,8 +41,10 @@ class MysqlPoolStore():
     async def add_farmer_record(self, farmer_record: FarmerRecord) -> int:
         now = datetime.datetime.now()
         now = now.strftime("%Y-%m-%d %H:%M:%S")
-        sql = "INSERT INTO MINING_WORKERS_CHIA VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, " \
-              "%s) ON DUPLICATE KEY " \
+        sql = "INSERT INTO MINING_WORKERS_CHIA(launcher_id, p2_singleton_puzzle_hash, delay_time, delay_puzzle_hash, " \
+              "authentication_public_key, singleton_tip, singleton_tip_state, accept_account, difficulty, " \
+              "payout_instructions, is_pool_member, created_at, updated_at) " \
+              "VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY " \
               "UPDATE p2_singleton_puzzle_hash = %s, delay_time = %s, delay_puzzle_hash = %s, " \
               "authentication_public_key = %s, singleton_tip = %s, singleton_tip_state = %s, " \
               "accept_account = %s, difficulty = %s, payout_instructions = %s, is_pool_member = %s, updated_at = %s"
