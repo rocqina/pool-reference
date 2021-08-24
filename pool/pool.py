@@ -233,6 +233,7 @@ class Pool:
 
     async def check_and_confirm_partial(self, partial: PostPartialRequest, points_received: uint64, puid : int) -> None:
         try:
+            pos_hash = partial.payload.proof_of_space.get_hash()
             if not self.dev_mode:
                 # TODO(pool): these lookups to the full node are not efficient and can be cached, especially for
                 #  scaling to many users
@@ -249,7 +250,6 @@ class Pool:
 
                 # Now we know that the partial came on time, but also that the signage point / EOS is still in the
                 # blockchain. We need to check for double submissions.
-                pos_hash = partial.payload.proof_of_space.get_hash()
                 if self.recent_points_added.get(pos_hash):
                     self.log.info(f"Double signage point submitted for proof: {partial.payload}")
                     return
