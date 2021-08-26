@@ -146,7 +146,8 @@ class Pool:
         # redis
         self.redis_host = pool_config["redis_host"]
         self.redis_port = int(pool_config["redis_port"])
-        self.passwd = pool_config["redis_passwd"]
+        self.redis_passwd = pool_config["redis_passwd"]
+        self.redis_db = pool_config["redis_db"]
         self.redis = {}
 
         # Tasks (infinite While loops) for different purposes
@@ -162,8 +163,8 @@ class Pool:
             self.simulate_partials_loop_task: Optional[asyncio.Task] = None
 
     async def start(self):
-        redis_pool = redis.ConnectionPool(host=self.redis_host, port=self.redis_port, password=self.passwd,
-                                          decode_responses=True)  # host是redis主机，需要redis服务端和客户端都起着 redis默认端口是6379
+        redis_pool = redis.ConnectionPool(host=self.redis_host, port=self.redis_port, password=self.redis_passwd,
+                                          db=self.redis_db, decode_responses=True)
         self.redis = redis.Redis(connection_pool=redis_pool)
 
         self.kafka_producer = KafkaProducer(bootstrap_servers=self.kafka_server)
