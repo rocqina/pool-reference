@@ -26,7 +26,6 @@ logging:
   log_stdout: false
 kafka_server: "127.0.0.1:9092"
 share_topic: "share_chia"
-farmer_topic: "farmer_chia"
 server:
   server_host: 0.0.0.0
   server_port: 8082

@@ -133,7 +133,7 @@ class Pool:
 
         # kafka
         self.kafka_server = pool_config["kafka_server"]
-        self.farmer_topic = pool_config["farmer_topic"]
+        # self.farmer_topic = pool_config["farmer_topic"]
         self.share_topic = pool_config["share_topic"]
         self.kafka_server = pool_config["kafka_server"]
         self.kafka_producer = {}
@@ -678,8 +678,8 @@ class Pool:
 
         return PostPartialResponse(current_difficulty).to_json_dict()
 
-    def produceFarmerMsg(self, msg):
-        self.kafka_producer.send(self.farmer_topic, msg)
+    # def produceFarmerMsg(self, msg):
+    #    self.kafka_producer.send(self.farmer_topic, msg)
 
     def produceShareMsg(self, msg):
         self.kafka_producer.send(self.share_topic, msg)
